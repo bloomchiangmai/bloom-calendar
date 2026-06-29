@@ -487,7 +487,7 @@ let _locationId=null;
 async function loadFromSupabase(){
   try{
     // Get location
-    const{data:loc}=await _supabase.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').single();
+    const{data:loc}=await _supabase.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').maybeSingle();
     if(!loc)return;
     _locationId=loc.id;
     // Load events
