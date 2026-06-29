@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#7B4FBE">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bloom Calendar">
+<link rel="manifest" href="manifest.json">
+<title>Bloom Calendar 2026–2027</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --purple:#7B4FBE;--purple-dark:#5f3a96;--purple-light:#F0EBFA;
+  --orange:#F5A623;--orange-light:#FEF3DC;
+  --bg:#FAF8F5;--white:#ffffff;--text:#1a1a1a;--text-muted:#6b6b6b;--border:#e8e4de;--radius:12px;
+  --school-color:#7B4FBE;--school-bg:#F0EBFA;
+  --break-color:#d97706;--break-bg:#FEF3DC;
+  --pd-color:#0891b2;--pd-bg:#e0f2fe;
+  --holiday-color:#dc2626;--holiday-bg:#fee2e2;
+  --today-color:#F5A623;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;}
+
+/* HEADER */
+.header{background:var(--purple);padding:0 4%;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:10px;}
+.logo-wrap{display:flex;align-items:center;gap:0;}
+.logo-img{height:32px;width:auto;}
+.logo-text-wrap{line-height:1;}
+.logo-wordmark{font-family:'Fraunces',serif;font-size:22px;color:white;font-weight:600;line-height:1;}
+.logo-dot-span{display:inline-block;width:8px;height:8px;background:var(--orange);border-radius:50%;margin-left:1px;vertical-align:middle;position:relative;top:-2px;}
+.logo-sub{font-size:10px;color:rgba(255,255,255,0.65);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px;}
+.header-center{font-family:'Fraunces',serif;font-size:14px;color:rgba(255,255,255,0.85);font-weight:400;position:absolute;left:50%;transform:translateX(-50%);}
+.header-right{display:flex;align-items:center;gap:10px;}
+.admin-link{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:6px 12px;color:white;font-size:12px;font-weight:500;text-decoration:none;transition:background 0.2s;}
+.admin-link:hover{background:rgba(255,255,255,0.25);}
+
+/* STATS BAR */
+.stats-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 4%;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
+.stats-bar::-webkit-scrollbar{display:none;}
+.stat-item{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:14px 0;white-space:nowrap;min-width:fit-content;padding-right:24px;}
+.stat-item:first-child{padding-left:0;}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:500;}
+.stat-value{font-family:'Fraunces',serif;font-size:20px;color:var(--purple);font-weight:600;line-height:1.1;}
+.stat-sub{font-size:12px;color:var(--text-muted);line-height:1.2;}
+.stat-divider{width:1px;background:var(--border);align-self:stretch;flex-shrink:0;margin-right:24px;}
+
+/* MAIN LAYOUT */
+.main-layout{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:24px 4%;max-width:1400px;margin:0 auto;}
+
+/* CALENDAR GRID - fixed 5 col, wraps naturally */
+.calendar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch;}
+
+/* MONTH CARD */
+.month-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.month-header{background:var(--purple);padding:9px 12px;text-align:center;}
+.month-name{font-family:'Fraunces',serif;font-size:12px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+.month-year-label{font-size:10px;color:rgba(255,255,255,0.65);margin-top:1px;}
+.month-body{padding:6px;}
+.day-headers{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+.day-header{text-align:center;font-size:8px;font-weight:600;color:var(--text-muted);padding:2px 0;text-transform:uppercase;}
+.days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;}
+.day-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:50%;cursor:pointer;transition:all 0.15s;color:var(--text-muted);font-weight:400;}
+.day-cell:hover{background:var(--purple-light);}
+.day-cell.school{background:var(--school-bg);color:var(--school-color);font-weight:500;}
+.day-cell.break{background:var(--break-bg);color:var(--break-color);font-weight:500;}
+.day-cell.pd{background:var(--pd-bg);color:var(--pd-color);font-weight:500;}
+.day-cell.holiday{background:var(--holiday-bg);color:var(--holiday-color);font-weight:500;}
+.day-cell.event{background:#dbeafe;color:#1d4ed8;font-weight:500;}
+.day-cell.today{background:var(--orange)!important;color:white!important;font-weight:700;}
+.day-cell.empty{cursor:default;visibility:hidden;}
+.day-cell.empty:hover{background:transparent;}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:14px;}
+.sidebar-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
+.sidebar-header{background:var(--purple);padding:10px 14px;}
+.sidebar-title{font-family:'Fraunces',serif;font-size:12px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+.sidebar-body{padding:12px 14px;}
+.key-date-item{padding:7px 0;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
+.key-date-item:last-child{border-bottom:none;}
+.key-date-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;}
+.key-date-label.term{color:var(--purple);}
+.key-date-label.break{color:var(--break-color);}
+.key-date-label.pd{color:var(--pd-color);}
+.key-date-label.holiday{color:var(--holiday-color);}
+.key-date-value{font-size:13px;color:var(--text);font-weight:500;}
+.legend{display:flex;flex-direction:column;gap:7px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;}
+.legend-dot.school{background:var(--school-color);}
+.legend-dot.break{background:var(--break-color);}
+.legend-dot.pd{background:var(--pd-color);}
+.legend-dot.holiday{background:var(--holiday-color);}
+.legend-dot.today{background:var(--today-color);}
+.hours-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.hours-row:last-child{border-bottom:none;}
+.hours-day{color:var(--text-muted);}
+.hours-time{font-weight:500;color:var(--purple);}
+
+/* POPUP */
+.popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;}
+.popup-overlay.open{display:flex;}
+.popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;}
+.popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
+.popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
+.popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
+.popup-info{font-size:14px;color:var(--text-muted);}
+
+/* MOBILE NAV */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:8px 0 env(safe-area-inset-bottom,8px);z-index:100;}
+.mobile-nav-inner{display:flex;justify-content:space-around;}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 16px;cursor:pointer;color:var(--text-muted);font-size:10px;font-weight:500;border:none;background:none;font-family:'DM Sans',sans-serif;transition:color 0.2s;}
+.mobile-nav-item.active{color:var(--purple);}
+.mobile-nav-item svg{width:22px;height:22px;}
+
+/* MOBILE VIEWS */
+.mobile-month-view,.mobile-keydate-view{display:none;}
+.mobile-month-nav{display:flex;align-items:center;justify-content:space-between;padding:16px 4%;background:white;border-bottom:1px solid var(--border);}
+.mobile-month-title{font-family:'Fraunces',serif;font-size:20px;color:var(--purple);}
+.mobile-nav-arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--purple);}
+.mobile-month-body{padding:12px 4% 100px;}
+.mobile-day-headers{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:8px;}
+.mobile-day-header{text-align:center;font-size:11px;font-weight:600;color:var(--text-muted);padding:4px 0;text-transform:uppercase;}
+.mobile-days-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.mobile-day-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:14px;border-radius:50%;cursor:pointer;font-weight:400;color:var(--text-muted);transition:all 0.15s;}
+.mobile-day-cell.school{background:var(--school-bg);color:var(--purple);font-weight:500;}
+.mobile-day-cell.break{background:var(--break-bg);color:var(--break-color);font-weight:500;}
+.mobile-day-cell.pd{background:var(--pd-bg);color:var(--pd-color);font-weight:500;}
+.mobile-day-cell.holiday{background:var(--holiday-bg);color:var(--holiday-color);font-weight:500;}
+.mobile-day-cell.today{background:var(--orange)!important;color:white!important;font-weight:700;}
+.mobile-day-cell.empty{cursor:default;}
+
+/* RESPONSIVE */
+@media(max-width:1200px){.calendar-grid{grid-template-columns:repeat(4,1fr);}.main-layout{grid-template-columns:1fr 260px;}}
+@media(max-width:900px){.calendar-grid{grid-template-columns:repeat(3,1fr);}.main-layout{grid-template-columns:1fr;}.sidebar{display:none;}}
+@media(max-width:600px){
+  .main-layout{display:none;}.mobile-nav{display:block;}
+  .stats-bar{padding:0 4%;gap:0;}
+  .header-center{display:none;}
+}
+@media(min-width:601px){.mobile-month-view,.mobile-keydate-view{display:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo-text-wrap">
+      <div class="logo-wordmark">bloom<span class="logo-dot-span"></span></div>
+      <div class="logo-sub">chiangmai</div>
+    </div>
+  </div>
+  <div class="header-center">Academic Calendar 2026–2027</div>
+  <div class="header-right">
+    <a href="admin.html" class="admin-link">🔒 Admin</a>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-label">Academic Year</span>
+    <span class="stat-value">2026–2027</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-label">Total School Days</span>
+    <span class="stat-value" id="totalDays">—</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-label">Current Term</span>
+    <span class="stat-value" id="currentTerm">—</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-label">Days Remaining</span>
+    <span class="stat-value" id="daysRemaining">—</span>
+    <span class="stat-sub" id="daysRemainingLabel"></span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-label">Next Holiday</span>
+    <span class="stat-value" id="nextHoliday">—</span>
+    <span class="stat-sub" id="nextHolidayLabel"></span>
+  </div>
+</div>
+
+<div class="main-layout" id="mainLayout">
+  <div class="calendar-grid" id="calendarGrid"></div>
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Key Dates</div></div>
+      <div class="sidebar-body">
+        <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value">31 Aug – 18 Dec 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">27 Nov 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 25 Jun 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">19 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">8 Feb 2027</span></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Official Holidays</div></div>
+      <div class="sidebar-body">
+        <div class="key-date-item"><span class="key-date-label holiday">13 Oct 2026</span><span class="key-date-value">HM King Bhumibol Memorial Day</span></div>
+        <div class="key-date-item"><span class="key-date-label holiday">1 May 2027</span><span class="key-date-value">Labour Day <span style="font-size:11px;color:var(--text-muted)">(falls on Saturday)</span></span></div>
+        <div class="key-date-item"><span class="key-date-label holiday">20 May 2027</span><span class="key-date-value">Visakha Bucha Day</span></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
+      <div class="sidebar-body">
+        <div class="hours-row"><span class="hours-day">Mon – Fri</span><span class="hours-time">08:30 – 15:30</span></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Legend</div></div>
+      <div class="sidebar-body">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot school"></span>School days</div>
+          <div class="legend-item"><span class="legend-dot break"></span>School breaks</div>
+          <div class="legend-item"><span class="legend-dot pd"></span>PD days</div>
+          <div class="legend-item"><span class="legend-dot holiday"></span>Public holidays</div>
+          <div class="legend-item"><span class="legend-dot today"></span>Today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE -->
+<div class="mobile-month-view" id="mobileMonthView">
+  <div class="mobile-month-nav">
+    <button class="mobile-nav-arrow" onclick="mobileChangeMonth(-1)">‹</button>
+    <div class="mobile-month-title" id="mobileMonthTitle"></div>
+    <button class="mobile-nav-arrow" onclick="mobileChangeMonth(1)">›</button>
+  </div>
+  <div class="mobile-month-body">
+    <div class="mobile-day-headers">
+      <div class="mobile-day-header">M</div><div class="mobile-day-header">T</div>
+      <div class="mobile-day-header">W</div><div class="mobile-day-header">T</div>
+      <div class="mobile-day-header">F</div><div class="mobile-day-header">S</div>
+      <div class="mobile-day-header">S</div>
+    </div>
+    <div class="mobile-days-grid" id="mobileDaysGrid"></div>
+  </div>
+</div>
+
+<div class="mobile-keydate-view" id="mobileKeyDateView" style="display:none;padding:16px 4% 100px;">
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Key Dates</div></div>
+      <div class="sidebar-body">
+        <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value">31 Aug – 18 Dec 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">27 Nov 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 25 Jun 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">19 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">8 Feb 2027</span></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Official Holidays</div></div>
+      <div class="sidebar-body">
+        <div class="key-date-item"><span class="key-date-label holiday">13 Oct 2026</span><span class="key-date-value">HM King Bhumibol Memorial Day</span></div>
+        <div class="key-date-item"><span class="key-date-label holiday">1 May 2027</span><span class="key-date-value">Labour Day (Saturday)</span></div>
+        <div class="key-date-item"><span class="key-date-label holiday">20 May 2027</span><span class="key-date-value">Visakha Bucha Day</span></div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
+      <div class="sidebar-body"><div class="hours-row"><span class="hours-day">Mon – Fri</span><span class="hours-time">08:30 – 15:30</span></div></div>
+    </div>
+    <div class="sidebar-card">
+      <div class="sidebar-header"><div class="sidebar-title">Legend</div></div>
+      <div class="sidebar-body">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot school"></span>School days</div>
+          <div class="legend-item"><span class="legend-dot break"></span>School breaks</div>
+          <div class="legend-item"><span class="legend-dot pd"></span>PD days</div>
+          <div class="legend-item"><span class="legend-dot holiday"></span>Public holidays</div>
+          <div class="legend-item"><span class="legend-dot today"></span>Today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mobile-nav-item active" id="navCalendar" onclick="mobileNav('calendar')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Calendar
+    </button>
+    <button class="mobile-nav-item" id="navDates" onclick="mobileNav('dates')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Key Dates
+    </button>
+  </div>
+</nav>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup">
+    <button class="popup-close" onclick="closePopup()">✕</button>
+    <div class="popup-date" id="popupDate"></div>
+    <div class="popup-type-badge" id="popupBadge"></div>
+    <div class="popup-info" id="popupInfo"></div>
+  </div>
+</div>
+
+<script>
+const MONTHS=[{year:2026,month:7},{year:2026,month:8},{year:2026,month:9},{year:2026,month:10},{year:2026,month:11},{year:2027,month:0},{year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4},{year:2027,month:5}];
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const BASE={};
+
+function sr(sy,sm,sd,ey,em,ed,type,label=''){
+  let c=new Date(sy,sm,sd),e=new Date(ey,em,ed);
+  while(c<=e){BASE[dk(c.getFullYear(),c.getMonth(),c.getDate())]={type,label};c.setDate(c.getDate()+1);}
+}
+function sd(y,m,d,type,label=''){BASE[dk(y,m,d)]={type,label};}
+function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+
+sr(2026,7,31,2026,11,18,'school');
+sr(2026,9,26,2026,9,30,'break','School Break');
+sd(2026,10,27,'pd','Professional Development Day');
+sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
+sr(2027,0,4,2027,5,25,'school');
+sr(2027,2,19,2027,3,15,'break','School Break');
+sd(2027,1,8,'pd','Professional Development Day');
+sd(2027,4,1,'holiday','Labour Day');
+sd(2027,4,20,'holiday','Visakha Bucha Day');
+['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
+Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
+
+let overrides=JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
+let currentMobileMonth=0;
+
+function getDay(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
+
+function calcStats(){
+  const today=new Date();
+  let total=0,remaining=0,nextHol=null;
+  MONTHS.forEach(({year,month})=>{
+    const days=new Date(year,month+1,0).getDate();
+    for(let d=1;d<=days;d++){
+      const data=getDay(year,month,d);
+      if(data&&data.type==='school'){total++;if(new Date(year,month,d)>=today)remaining++;}
+      if(data&&data.type==='holiday'&&!nextHol&&new Date(year,month,d)>today)
+        nextHol={date:new Date(year,month,d),label:data.label};
+    }
+  });
+  document.getElementById('totalDays').textContent=total;
+  const t=today;
+  let term='—';
+  if(t>=new Date(2026,7,31)&&t<=new Date(2026,11,18))term='Term 1';
+  else if(t>=new Date(2027,0,4)&&t<=new Date(2027,5,25))term='Term 2';
+  else if(t<new Date(2026,7,31))term='Starts Aug 2026';
+  else if(t>new Date(2027,5,25))term='Year Complete';
+  else term='School Break';
+  document.getElementById('currentTerm').textContent=term;
+  document.getElementById('daysRemaining').textContent=remaining;
+  document.getElementById('daysRemainingLabel').textContent='in academic year';
+  if(nextHol){
+    document.getElementById('nextHoliday').textContent=nextHol.date.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    document.getElementById('nextHolidayLabel').textContent=nextHol.label.split(' ').slice(0,3).join(' ');
+  }
+}
+
+function renderCalendar(){
+  const grid=document.getElementById('calendarGrid');
+  grid.innerHTML='';
+  const today=new Date();
+  MONTHS.forEach(({year,month})=>{
+    const card=document.createElement('div');
+    card.className='month-card';
+    const fd=new Date(year,month,1).getDay();
+    const offset=fd===0?6:fd-1;
+    const dim=new Date(year,month+1,0).getDate();
+    const totalCells=42;
+    const trailingCells=totalCells-offset-dim;
+    let html=`<div class="month-header"><div class="month-name">${MN[month]}</div><div class="month-year-label">${year}</div></div>
+    <div class="month-body"><div class="day-headers"><div class="day-header">M</div><div class="day-header">T</div><div class="day-header">W</div><div class="day-header">T</div><div class="day-header">F</div><div class="day-header">S</div><div class="day-header">S</div></div><div class="days-grid">`;
+    for(let i=0;i<offset;i++)html+=`<div class="day-cell empty"></div>`;
+    for(let d=1;d<=dim;d++){
+      const data=getDay(year,month,d);
+      const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+      const cls=isToday?'today':(data?data.type:'');
+      html+=`<div class="day-cell ${cls}" onclick="openPopup(${year},${month},${d})">${d}</div>`;
+    }
+    for(let i=0;i<trailingCells;i++)html+=`<div class="day-cell empty"></div>`;
+    html+=`</div></div>`;
+    card.innerHTML=html;
+    grid.appendChild(card);
+  });
+  // Fill last row - 11 months in 5-col grid leaves 4 empty spots, add invisible placeholders
+  const cols=5;
+  const remainder=MONTHS.length%cols;
+  if(remainder>0){
+    for(let i=0;i<(cols-remainder);i++){
+      const ph=document.createElement('div');
+      ph.style.visibility='hidden';
+      grid.appendChild(ph);
+    }
+  }
+}
+
+function renderMobileMonth(){
+  const{year,month}=MONTHS[currentMobileMonth];
+  document.getElementById('mobileMonthTitle').textContent=`${MN[month]} ${year}`;
+  const today=new Date();
+  const fd=new Date(year,month,1).getDay();
+  const offset=fd===0?6:fd-1;
+  const dim=new Date(year,month+1,0).getDate();
+  let html='';
+  for(let i=0;i<offset;i++)html+=`<div class="mobile-day-cell empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const data=getDay(year,month,d);
+    const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+    const cls=isToday?'today':(data?data.type:'');
+    html+=`<div class="mobile-day-cell ${cls}" onclick="openPopup(${year},${month},${d})">${d}</div>`;
+  }
+  document.getElementById('mobileDaysGrid').innerHTML=html;
+}
+
+function mobileChangeMonth(dir){
+  currentMobileMonth=Math.max(0,Math.min(MONTHS.length-1,currentMobileMonth+dir));
+  renderMobileMonth();
+}
+
+function setMobileToCurrentMonth(){
+  const today=new Date();
+  const idx=MONTHS.findIndex(m=>m.year===today.getFullYear()&&m.month===today.getMonth());
+  currentMobileMonth=idx>=0?idx:0;
+}
+
+function mobileNav(tab){
+  document.getElementById('mobileMonthView').style.display=tab==='calendar'?'block':'none';
+  document.getElementById('mobileKeyDateView').style.display=tab==='dates'?'block':'none';
+  document.getElementById('navCalendar').classList.toggle('active',tab==='calendar');
+  document.getElementById('navDates').classList.toggle('active',tab==='dates');
+  if(tab==='calendar')renderMobileMonth();
+}
+
+function openPopup(y,m,d){
+  const data=getDay(y,m,d);
+  document.getElementById('popupDate').textContent=new Date(y,m,d).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const typeMap={school:{label:'School Day',bg:'var(--school-bg)',color:'var(--school-color)'},break:{label:'School Break',bg:'var(--break-bg)',color:'var(--break-color)'},pd:{label:'PD Day',bg:'var(--pd-bg)',color:'var(--pd-color)'},holiday:{label:'Public Holiday',bg:'var(--holiday-bg)',color:'var(--holiday-color)'}};
+  const type=data?data.type:null;
+  const tm=type?typeMap[type]:null;
+  const badge=document.getElementById('popupBadge');
+  if(tm){badge.textContent=tm.label;badge.style.background=tm.bg;badge.style.color=tm.color;}
+  else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';}
+  let info='';
+  if(type==='school')info='School hours: 08:30 – 15:30';
+  else if(data&&data.label)info=data.label;
+  document.getElementById('popupInfo').textContent=info;
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+function closePopup(e){
+  if(!e||e.target===document.getElementById('popupOverlay'))
+    document.getElementById('popupOverlay').classList.remove('open');
+}
+
+function handleResize(){
+  const isMobile=window.innerWidth<=600;
+  if(isMobile){document.getElementById('mobileMonthView').style.display='block';renderMobileMonth();}
+  else{document.getElementById('mobileMonthView').style.display='none';document.getElementById('mobileKeyDateView').style.display='none';}
+}
+
+setMobileToCurrentMonth();
+renderCalendar();
+calcStats();
+handleResize();
+window.addEventListener('resize',handleResize);
+
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
