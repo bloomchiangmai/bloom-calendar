@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Bloom Calendar">
 <link rel="manifest" href="manifest.json">
 <title>Bloom Calendar 2026–2027</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -474,10 +475,37 @@ function handleResize(){
 }
 
 setMobileToCurrentMonth();
-renderCalendar();
-calcStats();
 handleResize();
 window.addEventListener('resize',handleResize);
+
+// ── SUPABASE INIT ─────────────────────────────────────────────
+const SUPABASE_URL='https://ndlcfgkhxjoancdvmgmr.supabase.co';
+const SUPABASE_KEY='sb_publishable_EzlLIeKJDqtMs0mKD0gfgA_C86iHZal';
+const _supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let _locationId=null;
+
+async function loadFromSupabase(){
+  try{
+    // Get location
+    const{data:loc}=await _supabase.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').single();
+    if(!loc)return;
+    _locationId=loc.id;
+    // Load events
+    const{data:events}=await _supabase.from('bloom_calendar_events').select('*').eq('location_id',_locationId);
+    if(events&&events.length>0){
+      overrides={};
+      events.forEach(ev=>{overrides[ev.date]={type:ev.day_type,label:ev.label||''};});
+    }
+    renderCalendar();
+    renderMobileMonth();
+    calcStats();
+  }catch(e){console.log('Supabase load failed, using local data',e);}
+}
+
+// Load from Supabase, fall back to localStorage
+loadFromSupabase().then(()=>{
+  renderCalendar();calcStats();
+});
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="theme-color" content="#7B4FBE">
 <title>Bloom Admin — Calendar</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -1082,49 +1083,41 @@ function obPrev(){
   if(obStep>1){obStep--;renderObStep();}
 }
 
-function finishSetup(){
-  // Build overrides from obData
+async function finishSetup(){
   const newOverrides={};
 
-  // Set all weekdays in terms as school days
   [[obData.t1Start,obData.t1End],[obData.t2Start,obData.t2End]].forEach(([start,end])=>{
     let c=new Date(start),e=new Date(end);
     while(c<=e){
       const dow=c.getDay();
-      if(dow!==0&&dow!==6){
-        const k=c.toISOString().split('T')[0];
-        newOverrides[k]={type:'school',label:''};
-      }
+      if(dow!==0&&dow!==6){const k=c.toISOString().split('T')[0];newOverrides[k]={type:'school',label:''};}
       c.setDate(c.getDate()+1);
     }
   });
-
-  // Apply breaks
   obData.breaks.forEach(b=>{
     let c=new Date(b.from),e=new Date(b.to);
-    while(c<=e){
-      const k=c.toISOString().split('T')[0];
-      newOverrides[k]={type:'break',label:b.label};
-      c.setDate(c.getDate()+1);
-    }
+    while(c<=e){newOverrides[c.toISOString().split('T')[0]]={type:'break',label:b.label};c.setDate(c.getDate()+1);}
   });
-
-  // Apply holidays
   obData.holidays.forEach(date=>{
     const h=THAI_HOLIDAYS.find(x=>x.date===date);
     newOverrides[date]={type:'holiday',label:h?h.name:'Public Holiday'};
   });
-
-  // Apply PD days
-  obData.pdDays.forEach(date=>{
-    newOverrides[date]={type:'pd',label:'Professional Development Day'};
-  });
+  obData.pdDays.forEach(date=>{newOverrides[date]={type:'pd',label:'Professional Development Day'};});
 
   overrides=newOverrides;
   localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
   localStorage.setItem('bloom_setup_done','true');
-  addAuditEntry('Calendar setup completed','Admin');
 
+  // Save to Supabase
+  try{
+    const yr=await sbSaveYear(obData);
+    if(yr){
+      const events=Object.entries(newOverrides).map(([date,d])=>({date,type:d.type,label:d.label}));
+      await sbSaveBulk(events);
+    }
+  }catch(e){console.log('Supabase setup save failed',e);}
+
+  addAuditEntry('Calendar setup completed','Admin');
   document.getElementById('onboarding').classList.remove('visible');
   showApp();
 }
@@ -1281,9 +1274,13 @@ function submitChangeRequest(){
   if(settings.approval&&!reason){alert('Please add a reason.');return;}
 
   if(!settings.approval){
-    // Direct apply instantly
-    if(type==='none'){delete overrides[crDateKey];}
-    else{overrides[crDateKey]={type,label};}
+    if(type==='none'){
+      delete overrides[crDateKey];
+      sbDeleteEvent(crDateKey);
+    } else {
+      overrides[crDateKey]={type,label};
+      sbSaveEvent(crDateKey,type,label);
+    }
     localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
     addAuditEntry(`${crDateKey} → ${type==='none'?'removed':type}${label?' ('+label+')':''}`, 'Admin');
     closeModal('changeRequestModal');
@@ -1565,8 +1562,13 @@ function approveChange(id){
   if(!change)return;
   const dates=change.isMulti?change.dates:[change.dateKey];
   dates.forEach(dateKey=>{
-    if(change.type==='none')delete overrides[dateKey];
-    else overrides[dateKey]={type:change.type,label:change.label||''};
+    if(change.type==='none'){
+      delete overrides[dateKey];
+      sbDeleteEvent(dateKey);
+    } else {
+      overrides[dateKey]={type:change.type,label:change.label||''};
+      sbSaveEvent(dateKey,change.type,change.label||'');
+    }
   });
   localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
   pendingChanges=pendingChanges.filter(p=>p.id!==id);
@@ -1688,12 +1690,76 @@ document.getElementById('veOverlay').addEventListener('click',function(e){if(e.t
 
 document.getElementById('loginPw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 
+// ── SUPABASE ─────────────────────────────────────────────────────
+const SB_URL='https://ndlcfgkhxjoancdvmgmr.supabase.co';
+const SB_KEY='sb_publishable_EzlLIeKJDqtMs0mKD0gfgA_C86iHZal';
+const _sb=window.supabase.createClient(SB_URL,SB_KEY);
+let _locId=null,_yearId=null;
+
+async function sbInit(){
+  try{
+    const{data:loc}=await _sb.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').single();
+    if(loc)_locId=loc.id;
+    const{data:yr}=await _sb.from('bloom_academic_years').select('id').eq('location_id',_locId).eq('is_active',true).single();
+    if(yr)_yearId=yr.id;
+    // Load events into overrides
+    const{data:events}=await _sb.from('bloom_calendar_events').select('*').eq('location_id',_locId);
+    if(events&&events.length>0){
+      overrides={};
+      events.forEach(ev=>{overrides[ev.date]={type:ev.day_type,label:ev.label||'',sbId:ev.id};});
+      localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
+    }
+  }catch(e){console.log('Supabase init failed, using localStorage',e);}
+}
+
+async function sbSaveEvent(date,dayType,label=''){
+  if(!_locId||!_yearId)return;
+  try{
+    await _sb.from('bloom_calendar_events').upsert(
+      {location_id:_locId,academic_year_id:_yearId,date,day_type:dayType,label,updated_at:new Date().toISOString()},
+      {onConflict:'location_id,date'}
+    );
+  }catch(e){console.log('Supabase save failed',e);}
+}
+
+async function sbDeleteEvent(date){
+  if(!_locId)return;
+  try{
+    await _sb.from('bloom_calendar_events').delete().eq('location_id',_locId).eq('date',date);
+  }catch(e){console.log('Supabase delete failed',e);}
+}
+
+async function sbSaveBulk(events){
+  if(!_locId||!_yearId)return;
+  try{
+    const rows=events.map(e=>({location_id:_locId,academic_year_id:_yearId,date:e.date,day_type:e.type,label:e.label||'',updated_at:new Date().toISOString()}));
+    for(let i=0;i<rows.length;i+=100){
+      await _sb.from('bloom_calendar_events').upsert(rows.slice(i,i+100),{onConflict:'location_id,date'});
+    }
+  }catch(e){console.log('Supabase bulk save failed',e);}
+}
+
+async function sbSaveYear(data){
+  if(!_locId)return null;
+  try{
+    const{data:yr}=await _sb.from('bloom_academic_years').insert({
+      location_id:_locId,label:data.label||'2026-2027',
+      t1_start:data.t1Start,t1_end:data.t1End,
+      t2_start:data.t2Start,t2_end:data.t2End,is_active:true
+    }).select().single();
+    if(yr)_yearId=yr.id;
+    return yr;
+  }catch(e){console.log('Supabase year save failed',e);return null;}
+}
+
 // ── BOOT ─────────────────────────────────────────────────────────
 if(localStorage.getItem('bloom_admin')==='true'){
   document.getElementById('loginScreen').style.display='none';
-  const setupDone=localStorage.getItem('bloom_setup_done');
-  if(!setupDone){showOnboarding();}
-  else{showApp();}
+  sbInit().then(()=>{
+    const setupDone=localStorage.getItem('bloom_setup_done');
+    if(!setupDone){showOnboarding();}
+    else{showApp();}
+  });
 }
 </script>
 </body>
