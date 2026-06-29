@@ -138,12 +138,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* RESPONSIVE */
 @media(max-width:1200px){.calendar-grid{grid-template-columns:repeat(4,1fr);}.main-layout{grid-template-columns:1fr 260px;}}
 @media(max-width:900px){.calendar-grid{grid-template-columns:repeat(3,1fr);}.main-layout{grid-template-columns:1fr;}.sidebar{display:none;}}
-@media(max-width:600px){
-  .main-layout{display:none;}.mobile-nav{display:block;}
-  .stats-bar{padding:0 4%;gap:0;}
+@media(max-width:768px){
+  .main-layout{display:none;}
+  .mobile-nav{display:block;}
+  .stats-bar{padding:0 1rem;gap:0;}
   .header-center{display:none;}
+  .header{padding:0 1rem;}
+  .mobile-month-body{padding:1rem 1rem 80px;}
+  .mobile-keydate-view{padding:1rem 1rem 80px!important;}
+  .mobile-month-nav{padding:1rem;}
+  .stat-item{padding:12px 0;padding-right:16px;}
+  .stat-value{font-size:18px;}
 }
-@media(min-width:601px){.mobile-month-view,.mobile-keydate-view{display:none!important;}}
+@media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}}
 </style>
 </head>
 <body>
