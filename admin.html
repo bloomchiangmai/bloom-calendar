@@ -504,6 +504,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
     <div class="settings-group">
       <div class="settings-group-title">Academic Year</div>
+      <div class="settings-row" onclick="syncToCloud()" id="syncCloudBtn">
+        <div>
+          <div class="settings-row-label">Sync to Cloud</div>
+          <div class="settings-row-sub" id="syncCloudStatus">Push current local data to the cloud database</div>
+        </div>
+        <span style="color:var(--text-muted);">›</span>
+      </div>
       <div class="settings-row" onclick="alert('Re-run setup wizard coming in Phase 2')">
         <div>
           <div class="settings-row-label">Edit Term Dates</div>
@@ -1667,6 +1674,38 @@ function renderAuditLog(){
 function clearLog(){if(!confirm('Clear history?'))return;auditLog=[];localStorage.setItem('bloom_cal_audit','[]');renderAuditLog();}
 
 // ── ARCHIVE ──────────────────────────────────────────────────────
+async function syncToCloud(){
+  const btn=document.getElementById('syncCloudBtn');
+  const status=document.getElementById('syncCloudStatus');
+  if(btn.dataset.syncing==='1')return;
+  const confirmMsg=`This will save your current academic year (Term 1: ${obData.t1Start} to ${obData.t1End}, Term 2: ${obData.t2Start} to ${obData.t2End}) and all ${Object.keys(overrides).length} calendar entries to the cloud database. Continue?`;
+  if(!confirm(confirmMsg))return;
+  btn.dataset.syncing='1';
+  status.textContent='Syncing…';
+  try{
+    await sbInit();
+    if(!_yearId){
+      const yr=await sbSaveYear(obData);
+      if(!yr){
+        status.textContent='Failed to save academic year — check Supabase connection.';
+        status.style.color='var(--red)';
+        btn.dataset.syncing='0';
+        return;
+      }
+    }
+    const events=Object.entries(overrides).map(([date,d])=>({date,type:d.type,label:d.label||''}));
+    await sbSaveBulk(events);
+    localStorage.setItem('bloom_setup_done','true');
+    status.textContent=`Synced successfully — ${events.length} calendar entries saved to the cloud.`;
+    status.style.color='#16a34a';
+    btn.dataset.syncing='0';
+  }catch(e){
+    status.textContent='Sync failed: '+e.message;
+    status.style.color='var(--red)';
+    btn.dataset.syncing='0';
+  }
+}
+
 function archiveYear(){
   const confirm1=confirm('Archive 2026-2027 and start a new academic year?\n\nThe current calendar will be saved as read-only.');
   if(!confirm1)return;
