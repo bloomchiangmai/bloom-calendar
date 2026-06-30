@@ -798,12 +798,14 @@ function getDayData(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 function isPending(y,m,d){return pendingChanges.some(p=>p.dateKey===dk(y,m,d)||(p.dates&&p.dates.includes(dk(y,m,d))));}
 
 // ── AUTH ─────────────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const pw=document.getElementById('loginPw').value;
   if(pw===ADMIN_PW){
     localStorage.setItem('bloom_admin','true');
     document.getElementById('loginScreen').style.display='none';
-    const setupDone=localStorage.getItem('bloom_setup_done');
+    await sbInit();
+    const setupDone=localStorage.getItem('bloom_setup_done')||!!_yearId;
+    if(setupDone)localStorage.setItem('bloom_setup_done','true');
     routeAfterAuth(setupDone);
   } else {
     document.getElementById('loginError').classList.add('show');
@@ -1773,7 +1775,8 @@ async function sbSaveYear(data){
 if(localStorage.getItem('bloom_admin')==='true'){
   document.getElementById('loginScreen').style.display='none';
   sbInit().then(()=>{
-    const setupDone=localStorage.getItem('bloom_setup_done');
+    const setupDone=localStorage.getItem('bloom_setup_done')||!!_yearId;
+    if(setupDone)localStorage.setItem('bloom_setup_done','true');
     routeAfterAuth(setupDone);
   });
 }
