@@ -111,12 +111,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
 .popup-info{font-size:14px;color:var(--text-muted);}
 
-/* MOBILE NAV */
-.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:8px 0 env(safe-area-inset-bottom,8px);z-index:100;}
-.mobile-nav-inner{display:flex;justify-content:space-around;}
-.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 16px;cursor:pointer;color:var(--text-muted);font-size:10px;font-weight:500;border:none;background:none;font-family:'DM Sans',sans-serif;transition:color 0.2s;}
+/* MOBILE NAV - Bloombrary style */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px);z-index:100;}
+.mobile-nav-inner{display:flex;justify-content:space-around;align-items:center;}
+.mobile-nav-item{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 20px;cursor:pointer;color:var(--text-muted);font-size:11px;font-weight:500;border:none;background:none;font-family:'DM Sans',sans-serif;transition:color 0.2s;min-width:60px;}
 .mobile-nav-item.active{color:var(--purple);}
-.mobile-nav-item svg{width:22px;height:22px;}
+.mobile-nav-item svg{width:24px;height:24px;stroke-width:1.5;}
 
 /* MOBILE VIEWS */
 .mobile-month-view,.mobile-keydate-view{display:none;}
@@ -240,25 +240,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
-<!-- MOBILE -->
+<!-- MOBILE - Full year grid view -->
 <div class="mobile-month-view" id="mobileMonthView">
-  <div class="mobile-month-nav">
-    <button class="mobile-nav-arrow" onclick="mobileChangeMonth(-1)">‹</button>
-    <div class="mobile-month-title" id="mobileMonthTitle"></div>
-    <button class="mobile-nav-arrow" onclick="mobileChangeMonth(1)">›</button>
+  <!-- Year overview grid -->
+  <div id="mobileYearGrid" style="padding:1rem 1rem 80px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="mobileYearGridInner"></div>
   </div>
-  <div class="mobile-month-body">
-    <div class="mobile-day-headers">
-      <div class="mobile-day-header">M</div><div class="mobile-day-header">T</div>
-      <div class="mobile-day-header">W</div><div class="mobile-day-header">T</div>
-      <div class="mobile-day-header">F</div><div class="mobile-day-header">S</div>
-      <div class="mobile-day-header">S</div>
+  <!-- Month zoom view (hidden by default) -->
+  <div id="mobileZoomView" style="display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:white;border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:10;">
+      <button onclick="closeMobileZoom()" style="background:none;border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--purple);">← All months</button>
+      <div class="mobile-month-title" id="mobileMonthTitle" style="font-family:'Fraunces',serif;font-size:18px;color:var(--purple);"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="mobile-nav-arrow" onclick="mobileChangeMonth(-1)">‹</button>
+        <button class="mobile-nav-arrow" onclick="mobileChangeMonth(1)">›</button>
+      </div>
     </div>
-    <div class="mobile-days-grid" id="mobileDaysGrid"></div>
+    <div class="mobile-month-body">
+      <div class="mobile-day-headers">
+        <div class="mobile-day-header">M</div><div class="mobile-day-header">T</div>
+        <div class="mobile-day-header">W</div><div class="mobile-day-header">T</div>
+        <div class="mobile-day-header">F</div><div class="mobile-day-header">S</div>
+        <div class="mobile-day-header">S</div>
+      </div>
+      <div class="mobile-days-grid" id="mobileDaysGrid"></div>
+    </div>
   </div>
 </div>
 
-<div class="mobile-keydate-view" id="mobileKeyDateView" style="display:none;padding:16px 4% 100px;">
+<div class="mobile-keydate-view" id="mobileKeyDateView" style="display:none;padding:1rem 1rem 80px;">
   <div style="display:flex;flex-direction:column;gap:12px;">
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">Key Dates</div></div>
@@ -301,11 +311,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <nav class="mobile-nav">
   <div class="mobile-nav-inner">
     <button class="mobile-nav-item active" id="navCalendar" onclick="mobileNav('calendar')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Calendar
     </button>
     <button class="mobile-nav-item" id="navDates" onclick="mobileNav('dates')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
       Key Dates
     </button>
   </div>
@@ -417,6 +427,57 @@ function renderCalendar(){
   }
 }
 
+function renderMobileYearGrid(){
+  const grid=document.getElementById('mobileYearGridInner');
+  grid.innerHTML='';
+  const today=new Date();
+  MONTHS.forEach(({year,month},idx)=>{
+    const card=document.createElement('div');
+    card.style.cssText='background:white;border-radius:12px;border:1px solid var(--border);overflow:hidden;cursor:pointer;';
+    card.onclick=()=>openMobileZoom(idx);
+    const fd=new Date(year,month,1).getDay();
+    const offset=fd===0?6:fd-1;
+    const dim=new Date(year,month+1,0).getDate();
+    const trailing=(7-(offset+dim)%7)%7;
+    let days='';
+    for(let i=0;i<offset;i++)days+=`<div style="aspect-ratio:1;"></div>`;
+    for(let d=1;d<=dim;d++){
+      const data=getDay(year,month,d);
+      const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+      const type=isToday?'today':(data?data.type:'');
+      const colors={school:`background:var(--school-bg);color:var(--school-color)`,break:`background:var(--break-bg);color:var(--break-color)`,pd:`background:var(--pd-bg);color:var(--pd-color)`,holiday:`background:var(--holiday-bg);color:var(--holiday-color)`,today:`background:var(--orange);color:white`};
+      const style=colors[type]||'color:#ccc;';
+      days+=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:8px;border-radius:50%;font-weight:${type?'600':'400'};${style}">${d}</div>`;
+    }
+    for(let i=0;i<trailing;i++)days+=`<div style="aspect-ratio:1;"></div>`;
+    card.innerHTML=`
+      <div style="background:var(--purple);padding:6px 8px;text-align:center;">
+        <div style="font-family:'Fraunces',serif;font-size:11px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">${MN[month]}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.7);">${year}</div>
+      </div>
+      <div style="padding:5px;">
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;">
+          ${['M','T','W','T','F','S','S'].map(d=>`<div style="text-align:center;font-size:7px;color:#999;font-weight:600;">${d}</div>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;">${days}</div>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+function openMobileZoom(idx){
+  currentMobileMonth=idx;
+  document.getElementById('mobileYearGrid').style.display='none';
+  document.getElementById('mobileZoomView').style.display='block';
+  renderMobileMonth();
+}
+
+function closeMobileZoom(){
+  document.getElementById('mobileZoomView').style.display='none';
+  document.getElementById('mobileYearGrid').style.display='block';
+  renderMobileYearGrid();
+}
+
 function renderMobileMonth(){
   const{year,month}=MONTHS[currentMobileMonth];
   document.getElementById('mobileMonthTitle').textContent=`${MN[month]} ${year}`;
@@ -424,6 +485,7 @@ function renderMobileMonth(){
   const fd=new Date(year,month,1).getDay();
   const offset=fd===0?6:fd-1;
   const dim=new Date(year,month+1,0).getDate();
+  const trailing=(7-(offset+dim)%7)%7;
   let html='';
   for(let i=0;i<offset;i++)html+=`<div class="mobile-day-cell empty"></div>`;
   for(let d=1;d<=dim;d++){
@@ -432,6 +494,7 @@ function renderMobileMonth(){
     const cls=isToday?'today':(data?data.type:'');
     html+=`<div class="mobile-day-cell ${cls}" onclick="openPopup(${year},${month},${d})">${d}</div>`;
   }
+  for(let i=0;i<trailing;i++)html+=`<div class="mobile-day-cell empty"></div>`;
   document.getElementById('mobileDaysGrid').innerHTML=html;
 }
 
@@ -451,7 +514,11 @@ function mobileNav(tab){
   document.getElementById('mobileKeyDateView').style.display=tab==='dates'?'block':'none';
   document.getElementById('navCalendar').classList.toggle('active',tab==='calendar');
   document.getElementById('navDates').classList.toggle('active',tab==='dates');
-  if(tab==='calendar')renderMobileMonth();
+  if(tab==='calendar'){
+    document.getElementById('mobileYearGrid').style.display='block';
+    document.getElementById('mobileZoomView').style.display='none';
+    renderMobileYearGrid();
+  }
 }
 
 function openPopup(y,m,d){
@@ -476,9 +543,17 @@ function closePopup(e){
 }
 
 function handleResize(){
-  const isMobile=window.innerWidth<=600;
-  if(isMobile){document.getElementById('mobileMonthView').style.display='block';renderMobileMonth();}
-  else{document.getElementById('mobileMonthView').style.display='none';document.getElementById('mobileKeyDateView').style.display='none';}
+  const isMobile=window.innerWidth<=768;
+  if(isMobile){
+    document.getElementById('mobileMonthView').style.display='block';
+    document.getElementById('mobileKeyDateView').style.display='none';
+    document.getElementById('mobileYearGrid').style.display='block';
+    document.getElementById('mobileZoomView').style.display='none';
+    renderMobileYearGrid();
+  } else {
+    document.getElementById('mobileMonthView').style.display='none';
+    document.getElementById('mobileKeyDateView').style.display='none';
+  }
 }
 
 setMobileToCurrentMonth();
