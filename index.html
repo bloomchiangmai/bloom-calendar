@@ -48,7 +48,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .site-footer .staff-access-link:hover{color:var(--purple);}
 @media(min-width:769px){.site-footer{padding:24px 4%;}}
 
+.main-legend-strip{background:var(--white);border-bottom:1px solid var(--border);padding:12px 4%;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.main-legend-row{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;}
+.main-legend-pill{display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;}
+@media(max-width:768px){.main-legend-strip{padding:10px 1rem;}.main-legend-pill{font-size:12px;padding:4px 12px;}}
 /* STATS BAR */
+.stat-group{display:contents;}
 .stats-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 4%;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
 .stats-bar::-webkit-scrollbar{display:none;}
 .stat-item{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:14px 0;white-space:nowrap;min-width:fit-content;padding-right:24px;}
@@ -159,14 +164,18 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(max-width:768px){
   .main-layout{display:none;}
   .mobile-nav{display:block;}
-  .stats-bar{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:10px 1rem;overflow-x:visible;}
+  .stats-bar{display:flex;flex-direction:column;gap:10px;padding:12px 1rem;overflow-x:visible;}
+  .stat-group{display:contents;}
+  .stat-group-year{display:block;}
+  .stat-group-rest{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;}
   .stat-divider{display:none;}
   .header-center{display:none;}
   .header{padding:0 1rem;}
   .mobile-month-body{padding:1rem 1rem 80px;}
   .mobile-keydate-view{padding:1rem 1rem 80px!important;}
   .mobile-month-nav{padding:1rem;}
-  .stat-item{padding:6px 0;padding-right:0;min-width:0;}
+  .stat-item{padding:0;padding-right:0;min-width:0;}
+  .stat-group-year .stat-value{font-size:22px;}
   .stat-value{font-size:16px;}
   .stat-label{font-size:10px;}
 }
@@ -187,33 +196,39 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </header>
 
 <div class="stats-bar">
-  <div class="stat-item">
-    <span class="stat-label">Academic Year</span>
-    <span class="stat-value">2026–2027</span>
+  <div class="stat-group stat-group-year">
+    <div class="stat-item">
+      <span class="stat-label">Academic Year</span>
+      <span class="stat-value">2026–2027</span>
+    </div>
   </div>
   <div class="stat-divider"></div>
-  <div class="stat-item">
-    <span class="stat-label">Total School Days</span>
-    <span class="stat-value" id="totalDays">—</span>
-  </div>
-  <div class="stat-divider"></div>
-  <div class="stat-item">
-    <span class="stat-label">Current Term</span>
-    <span class="stat-value" id="currentTerm">—</span>
-  </div>
-  <div class="stat-divider"></div>
-  <div class="stat-item">
-    <span class="stat-label">Days Remaining</span>
-    <span class="stat-value" id="daysRemaining">—</span>
-    <span class="stat-sub" id="daysRemainingLabel"></span>
-  </div>
-  <div class="stat-divider"></div>
-  <div class="stat-item">
-    <span class="stat-label">Next Holiday</span>
-    <span class="stat-value" id="nextHoliday">—</span>
-    <span class="stat-sub" id="nextHolidayLabel"></span>
+  <div class="stat-group stat-group-rest">
+    <div class="stat-item">
+      <span class="stat-label">Total School Days</span>
+      <span class="stat-value" id="totalDays">—</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Current Term</span>
+      <span class="stat-value" id="currentTerm">—</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Days Remaining</span>
+      <span class="stat-value" id="daysRemaining">—</span>
+      <span class="stat-sub" id="daysRemainingLabel"></span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-label">Next Holiday</span>
+      <span class="stat-value" id="nextHoliday">—</span>
+      <span class="stat-sub" id="nextHolidayLabel"></span>
+    </div>
   </div>
 </div>
+
+<div class="main-legend-strip" id="mainLegendStrip"></div>
 
 <div class="main-layout" id="mainLayout">
   <div class="calendar-grid" id="calendarGrid"></div>
@@ -393,6 +408,25 @@ const TYPE_META={
   makeup:{label:'Make-up Day',bg:'var(--makeup-bg)',color:'var(--makeup-color)'}
 };
 
+function renderMainLegendStrip(){
+  // Curated, minimal legend for the main Calendar page: School Day on its own row,
+  // then the key exceptions parents need to plan around. Full 9-type legend stays under Key Dates.
+  const used=new Set();
+  MONTHS.forEach(({year,month})=>{
+    const dim=new Date(year,month+1,0).getDate();
+    for(let d=1;d<=dim;d++){
+      const data=getDay(year,month,d);
+      if(data&&data.type)used.add(data.type);
+    }
+  });
+  const pill=t=>`<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}">${TYPE_META[t].label}</span>`;
+  let html='';
+  if(used.has('school'))html+=`<div class="main-legend-row">${pill('school')}</div>`;
+  const exceptions=['break','pd','holiday'].filter(t=>used.has(t));
+  if(exceptions.length)html+=`<div class="main-legend-row">${exceptions.map(pill).join('')}</div>`;
+  document.getElementById('mainLegendStrip').innerHTML=html;
+}
+
 function renderLegend(){
   // Only show dots for day types that actually appear somewhere in the academic year,
   // so the legend stays short instead of listing all 9 types every time.
@@ -444,6 +478,7 @@ function calcStats(){
     document.getElementById('nextHolidayLabel').textContent=nextHol.label.split(' ').slice(0,3).join(' ');
   }
   renderLegend();
+  renderMainLegendStrip();
 }
 
 function renderCalendar(){
