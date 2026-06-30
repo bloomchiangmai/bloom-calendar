@@ -21,9 +21,15 @@
   --break-color:#d97706;--break-bg:#FEF3DC;
   --pd-color:#0891b2;--pd-bg:#e0f2fe;
   --holiday-color:#dc2626;--holiday-bg:#fee2e2;
+  --event-color:#1d4ed8;--event-bg:#dbeafe;
+  --exam-color:#854d0e;--exam-bg:#fef9c3;
+  --early-color:#c2410c;--early-bg:#ffe4e0;
+  --closure-color:#be185d;--closure-bg:#fce7f3;
+  --makeup-color:#065f46;--makeup-bg:#d1fae5;
   --today-color:#F5A623;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;}
+html{overscroll-behavior-y:none;height:100%;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;overscroll-behavior-y:none;-webkit-overflow-scrolling:touch;}
 
 /* HEADER */
 .header{background:var(--purple);padding:0 4%;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
@@ -36,8 +42,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .logo-sub{font-size:10px;color:rgba(255,255,255,0.65);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px;}
 .header-center{font-family:'Fraunces',serif;font-size:14px;color:rgba(255,255,255,0.85);font-weight:400;position:absolute;left:50%;transform:translateX(-50%);}
 .header-right{display:flex;align-items:center;gap:10px;}
-.admin-link{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:20px;padding:6px 12px;color:white;font-size:12px;font-weight:500;text-decoration:none;transition:background 0.2s;}
-.admin-link:hover{background:rgba(255,255,255,0.25);}
+.admin-link{display:none;}
+.site-footer{text-align:center;padding:24px 4% 90px;font-size:12px;color:var(--text-muted);}
+.site-footer .staff-access-link{color:var(--text-muted);text-decoration:underline;margin-left:8px;}
+.site-footer .staff-access-link:hover{color:var(--purple);}
+@media(min-width:769px){.site-footer{padding:24px 4%;}}
 
 /* STATS BAR */
 .stats-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 4%;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
@@ -70,7 +79,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .day-cell.break{background:var(--break-bg);color:var(--break-color);font-weight:500;}
 .day-cell.pd{background:var(--pd-bg);color:var(--pd-color);font-weight:500;}
 .day-cell.holiday{background:var(--holiday-bg);color:var(--holiday-color);font-weight:500;}
-.day-cell.event{background:#dbeafe;color:#1d4ed8;font-weight:500;}
+.day-cell.event{background:var(--event-bg);color:var(--event-color);font-weight:500;}
+.day-cell.exam{background:var(--exam-bg);color:var(--exam-color);font-weight:500;}
+.day-cell.early{background:var(--early-bg);color:var(--early-color);font-weight:500;}
+.day-cell.closure{background:var(--closure-bg);color:var(--closure-color);font-weight:500;}
+.day-cell.makeup{background:var(--makeup-bg);color:var(--makeup-color);font-weight:500;}
 .day-cell.today{background:var(--orange)!important;color:white!important;font-weight:700;}
 .day-cell.empty{cursor:default;visibility:hidden;}
 .day-cell.empty:hover{background:transparent;}
@@ -132,6 +145,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mobile-day-cell.break{background:var(--break-bg);color:var(--break-color);font-weight:500;}
 .mobile-day-cell.pd{background:var(--pd-bg);color:var(--pd-color);font-weight:500;}
 .mobile-day-cell.holiday{background:var(--holiday-bg);color:var(--holiday-color);font-weight:500;}
+.mobile-day-cell.event{background:var(--event-bg);color:var(--event-color);font-weight:500;}
+.mobile-day-cell.exam{background:var(--exam-bg);color:var(--exam-color);font-weight:500;}
+.mobile-day-cell.early{background:var(--early-bg);color:var(--early-color);font-weight:500;}
+.mobile-day-cell.closure{background:var(--closure-bg);color:var(--closure-color);font-weight:500;}
+.mobile-day-cell.makeup{background:var(--makeup-bg);color:var(--makeup-color);font-weight:500;}
 .mobile-day-cell.today{background:var(--orange)!important;color:white!important;font-weight:700;}
 .mobile-day-cell.empty{cursor:default;}
 
@@ -141,14 +159,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(max-width:768px){
   .main-layout{display:none;}
   .mobile-nav{display:block;}
-  .stats-bar{padding:0 1rem;gap:0;}
+  .stats-bar{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;padding:10px 1rem;overflow-x:visible;}
+  .stat-divider{display:none;}
   .header-center{display:none;}
   .header{padding:0 1rem;}
   .mobile-month-body{padding:1rem 1rem 80px;}
   .mobile-keydate-view{padding:1rem 1rem 80px!important;}
   .mobile-month-nav{padding:1rem;}
-  .stat-item{padding:12px 0;padding-right:16px;}
-  .stat-value{font-size:18px;}
+  .stat-item{padding:6px 0;padding-right:0;min-width:0;}
+  .stat-value{font-size:16px;}
+  .stat-label{font-size:10px;}
 }
 @media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}}
 </style>
@@ -163,9 +183,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="header-center">Academic Calendar 2026–2027</div>
-  <div class="header-right">
-    <a href="admin.html" class="admin-link">🔒 Admin</a>
-  </div>
+  <div class="header-right"></div>
 </header>
 
 <div class="stats-bar">
@@ -308,6 +326,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<footer class="site-footer">
+  © 2026 Bloom Calendar — Bloom Chiangmai. All rights reserved.
+  <a href="admin.html" class="staff-access-link">Staff Access</a>
+</footer>
+
 <nav class="mobile-nav">
   <div class="mobile-nav-inner">
     <button class="mobile-nav-item active" id="navCalendar" onclick="mobileNav('calendar')">
@@ -358,6 +381,38 @@ Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).
 let overrides=JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
 let currentMobileMonth=0;
 
+const TYPE_META={
+  school:{label:'School Day',bg:'var(--school-bg)',color:'var(--school-color)'},
+  break:{label:'School Break',bg:'var(--break-bg)',color:'var(--break-color)'},
+  pd:{label:'PD Day',bg:'var(--pd-bg)',color:'var(--pd-color)'},
+  holiday:{label:'Public Holiday',bg:'var(--holiday-bg)',color:'var(--holiday-color)'},
+  event:{label:'School Event',bg:'var(--event-bg)',color:'var(--event-color)'},
+  exam:{label:'Exam Day',bg:'var(--exam-bg)',color:'var(--exam-color)'},
+  early:{label:'Early Dismissal',bg:'var(--early-bg)',color:'var(--early-color)'},
+  closure:{label:'Emergency Closure',bg:'var(--closure-bg)',color:'var(--closure-color)'},
+  makeup:{label:'Make-up Day',bg:'var(--makeup-bg)',color:'var(--makeup-color)'}
+};
+
+function renderLegend(){
+  // Only show dots for day types that actually appear somewhere in the academic year,
+  // so the legend stays short instead of listing all 9 types every time.
+  const used=new Set();
+  MONTHS.forEach(({year,month})=>{
+    const dim=new Date(year,month+1,0).getDate();
+    for(let d=1;d<=dim;d++){
+      const data=getDay(year,month,d);
+      if(data&&data.type)used.add(data.type);
+    }
+  });
+  const order=['school','break','pd','holiday','event','exam','early','closure','makeup'];
+  let html='';
+  order.filter(t=>used.has(t)).forEach(t=>{
+    html+=`<div class="legend-item"><span class="legend-dot" style="background:${TYPE_META[t].color}"></span>${TYPE_META[t].label}</div>`;
+  });
+  html+=`<div class="legend-item"><span class="legend-dot today"></span>Today</div>`;
+  document.querySelectorAll('.legend').forEach(el=>el.innerHTML=html);
+}
+
 function getDay(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 
 function calcStats(){
@@ -383,10 +438,12 @@ function calcStats(){
   document.getElementById('currentTerm').textContent=term;
   document.getElementById('daysRemaining').textContent=remaining;
   document.getElementById('daysRemainingLabel').textContent='in academic year';
+  document.getElementById('nextHoliday').textContent='—';
   if(nextHol){
     document.getElementById('nextHoliday').textContent=nextHol.date.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
     document.getElementById('nextHolidayLabel').textContent=nextHol.label.split(' ').slice(0,3).join(' ');
   }
+  renderLegend();
 }
 
 function renderCalendar(){
@@ -445,7 +502,7 @@ function renderMobileYearGrid(){
       const data=getDay(year,month,d);
       const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
       const type=isToday?'today':(data?data.type:'');
-      const colors={school:`background:var(--school-bg);color:var(--school-color)`,break:`background:var(--break-bg);color:var(--break-color)`,pd:`background:var(--pd-bg);color:var(--pd-color)`,holiday:`background:var(--holiday-bg);color:var(--holiday-color)`,today:`background:var(--orange);color:white`};
+      const colors={school:`background:var(--school-bg);color:var(--school-color)`,break:`background:var(--break-bg);color:var(--break-color)`,pd:`background:var(--pd-bg);color:var(--pd-color)`,holiday:`background:var(--holiday-bg);color:var(--holiday-color)`,event:`background:var(--event-bg);color:var(--event-color)`,exam:`background:var(--exam-bg);color:var(--exam-color)`,early:`background:var(--early-bg);color:var(--early-color)`,closure:`background:var(--closure-bg);color:var(--closure-color)`,makeup:`background:var(--makeup-bg);color:var(--makeup-color)`,today:`background:var(--orange);color:white`};
       const style=colors[type]||'color:#ccc;';
       days+=`<div style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:8px;border-radius:50%;font-weight:${type?'600':'400'};${style}">${d}</div>`;
     }
@@ -524,9 +581,8 @@ function mobileNav(tab){
 function openPopup(y,m,d){
   const data=getDay(y,m,d);
   document.getElementById('popupDate').textContent=new Date(y,m,d).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const typeMap={school:{label:'School Day',bg:'var(--school-bg)',color:'var(--school-color)'},break:{label:'School Break',bg:'var(--break-bg)',color:'var(--break-color)'},pd:{label:'PD Day',bg:'var(--pd-bg)',color:'var(--pd-color)'},holiday:{label:'Public Holiday',bg:'var(--holiday-bg)',color:'var(--holiday-color)'}};
   const type=data?data.type:null;
-  const tm=type?typeMap[type]:null;
+  const tm=type?TYPE_META[type]:null;
   const badge=document.getElementById('popupBadge');
   if(tm){badge.textContent=tm.label;badge.style.background=tm.bg;badge.style.color=tm.color;}
   else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';}
