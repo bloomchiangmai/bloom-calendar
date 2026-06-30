@@ -43,8 +43,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .header-center{font-family:'Fraunces',serif;font-size:14px;color:rgba(255,255,255,0.85);font-weight:400;position:absolute;left:50%;transform:translateX(-50%);}
 .header-right{display:flex;align-items:center;gap:10px;}
 .admin-link{display:none;}
-.site-footer{text-align:center;padding:24px 4% 90px;font-size:12px;color:var(--text-muted);}
-.site-footer .staff-access-link{color:var(--text-muted);text-decoration:underline;margin-left:8px;}
+.site-footer{text-align:center;padding:24px 4% 90px;font-size:11px;color:#b5b0a8;line-height:1.6;}
+.site-footer .staff-access-link{color:#b5b0a8;text-decoration:none;text-transform:uppercase;letter-spacing:0.04em;}
 .site-footer .staff-access-link:hover{color:var(--purple);}
 @media(min-width:769px){.site-footer{padding:24px 4%;}}
 
@@ -342,7 +342,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <footer class="site-footer">
-  © 2026 Bloom Calendar — Bloom Chiangmai. All rights reserved.
+  <div>© 2026 Bloom Space Hub Calendar</div>
+  <div>Bloom Chiangmai. All rights reserved.</div>
   <a href="admin.html" class="staff-access-link">Staff Access</a>
 </footer>
 
@@ -409,21 +410,25 @@ const TYPE_META={
 };
 
 function renderMainLegendStrip(){
-  // Curated, minimal legend for the main Calendar page: School Day on its own row,
-  // then the key exceptions parents need to plan around. Full 9-type legend stays under Key Dates.
+  // Curated, minimal legend for the main Calendar page. Full 9-type legend stays under Key Dates.
   const used=new Set();
+  let hasToday=false;
+  const today=new Date();
   MONTHS.forEach(({year,month})=>{
     const dim=new Date(year,month+1,0).getDate();
     for(let d=1;d<=dim;d++){
       const data=getDay(year,month,d);
       if(data&&data.type)used.add(data.type);
+      if(today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d)hasToday=true;
     }
   });
   const pill=t=>`<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}">${TYPE_META[t].label}</span>`;
   let html='';
-  if(used.has('school'))html+=`<div class="main-legend-row">${pill('school')}</div>`;
-  const exceptions=['break','pd','holiday'].filter(t=>used.has(t));
-  if(exceptions.length)html+=`<div class="main-legend-row">${exceptions.map(pill).join('')}</div>`;
+  const row1=['school','break'].filter(t=>used.has(t));
+  if(row1.length)html+=`<div class="main-legend-row">${row1.map(pill).join('')}</div>`;
+  const row2=['holiday','pd','event'].filter(t=>used.has(t));
+  if(row2.length)html+=`<div class="main-legend-row">${row2.map(pill).join('')}</div>`;
+  if(hasToday)html+=`<div class="main-legend-row"><span class="main-legend-pill" style="background:var(--orange);color:white">Today</span></div>`;
   document.getElementById('mainLegendStrip').innerHTML=html;
 }
 
@@ -443,7 +448,6 @@ function renderLegend(){
   order.filter(t=>used.has(t)).forEach(t=>{
     html+=`<div class="legend-item"><span class="legend-dot" style="background:${TYPE_META[t].color}"></span>${TYPE_META[t].label}</div>`;
   });
-  html+=`<div class="legend-item"><span class="legend-dot today"></span>Today</div>`;
   document.querySelectorAll('.legend').forEach(el=>el.innerHTML=html);
 }
 
@@ -557,14 +561,40 @@ function renderMobileYearGrid(){
   });
 }
 
+let mobileCalState='full';
+let lastInteractionTs=Date.now();
+
+function checkInactivityReset(){
+  const idle=Date.now()-lastInteractionTs>3600000;
+  if(idle){mobileCalState='full';setMobileToCurrentMonth();}
+  lastInteractionTs=Date.now();
+  return idle;
+}
+
+function applyMobileCalState(){
+  if(mobileCalState==='zoom'){
+    document.getElementById('mobileYearGrid').style.display='none';
+    document.getElementById('mobileZoomView').style.display='block';
+    renderMobileMonth();
+  }else{
+    document.getElementById('mobileYearGrid').style.display='block';
+    document.getElementById('mobileZoomView').style.display='none';
+    renderMobileYearGrid();
+  }
+}
+
 function openMobileZoom(idx){
+  lastInteractionTs=Date.now();
   currentMobileMonth=idx;
+  mobileCalState='zoom';
   document.getElementById('mobileYearGrid').style.display='none';
   document.getElementById('mobileZoomView').style.display='block';
   renderMobileMonth();
 }
 
 function closeMobileZoom(){
+  lastInteractionTs=Date.now();
+  mobileCalState='full';
   document.getElementById('mobileZoomView').style.display='none';
   document.getElementById('mobileYearGrid').style.display='block';
   renderMobileYearGrid();
@@ -591,6 +621,7 @@ function renderMobileMonth(){
 }
 
 function mobileChangeMonth(dir){
+  lastInteractionTs=Date.now();
   currentMobileMonth=Math.max(0,Math.min(MONTHS.length-1,currentMobileMonth+dir));
   renderMobileMonth();
 }
@@ -602,14 +633,15 @@ function setMobileToCurrentMonth(){
 }
 
 function mobileNav(tab){
+  const wasCalendarActive=document.getElementById('navCalendar').classList.contains('active');
+  checkInactivityReset();
   document.getElementById('mobileMonthView').style.display=tab==='calendar'?'block':'none';
   document.getElementById('mobileKeyDateView').style.display=tab==='dates'?'block':'none';
   document.getElementById('navCalendar').classList.toggle('active',tab==='calendar');
   document.getElementById('navDates').classList.toggle('active',tab==='dates');
   if(tab==='calendar'){
-    document.getElementById('mobileYearGrid').style.display='block';
-    document.getElementById('mobileZoomView').style.display='none';
-    renderMobileYearGrid();
+    if(wasCalendarActive)mobileCalState=mobileCalState==='full'?'zoom':'full';
+    applyMobileCalState();
   }
 }
 
