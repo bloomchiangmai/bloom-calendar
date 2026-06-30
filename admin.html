@@ -20,10 +20,10 @@
   --pd-color:#0891b2;--pd-bg:#e0f2fe;
   --holiday-color:#dc2626;--holiday-bg:#fee2e2;
   --event-color:#1d4ed8;--event-bg:#dbeafe;
-  --exam-color:#854d0e;--exam-bg:#fef9c3;
-  --early-color:#c2410c;--early-bg:#ffe4e0;
-  --closure-color:#be185d;--closure-bg:#fce7f3;
-  --makeup-color:#065f46;--makeup-bg:#d1fae5;
+  --schedulechange-color:#475569;--schedulechange-bg:#e2e8f0;
+  --early-color:#475569;--early-bg:#e2e8f0;
+  --closure-color:#475569;--closure-bg:#e2e8f0;
+  --makeup-color:#475569;--makeup-bg:#e2e8f0;
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:16px;}
 
@@ -154,7 +154,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mini-day.pd{background:var(--pd-bg);color:var(--pd-color);font-weight:500;}
 .mini-day.holiday{background:var(--holiday-bg);color:var(--holiday-color);font-weight:500;}
 .mini-day.event{background:var(--event-bg);color:var(--event-color);font-weight:500;}
-.mini-day.exam{background:var(--exam-bg);color:var(--exam-color);font-weight:500;}
 .mini-day.early{background:var(--early-bg);color:var(--early-color);font-weight:500;}
 .mini-day.closure{background:var(--closure-bg);color:var(--closure-color);font-weight:500;}
 .mini-day.makeup{background:var(--makeup-bg);color:var(--makeup-color);font-weight:500;}
@@ -418,12 +417,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="card-body">
         <div class="day-type-grid">
           <div class="day-type-pill" style="background:var(--school-bg);color:var(--school-color)" onclick="openVE('school','School Day')">School Day</div>
-          <div class="day-type-pill" style="background:var(--early-bg);color:var(--early-color)" onclick="openVE('early','Early Dismissal')">Early Dismissal</div>
           <div class="day-type-pill" style="background:var(--event-bg);color:var(--event-color)" onclick="openVE('event','School Event')">School Event</div>
-          <div class="day-type-pill" style="background:var(--exam-bg);color:var(--exam-color)" onclick="openVE('exam','Exam Day')">Exam Day</div>
           <div class="day-type-pill" style="background:var(--pd-bg);color:var(--pd-color)" onclick="openVE('pd','PD Day')">PD Day</div>
           <div class="day-type-pill" style="background:var(--holiday-bg);color:var(--holiday-color)" onclick="openVE('holiday','Public Holiday')">Public Holiday</div>
           <div class="day-type-pill" style="background:var(--break-bg);color:var(--break-color)" onclick="openVE('break','School Break')">School Break</div>
+          <div class="day-type-pill" style="background:var(--early-bg);color:var(--early-color)" onclick="openVE('early','Early Dismissal')">Early Dismissal</div>
           <div class="day-type-pill" style="background:var(--closure-bg);color:var(--closure-color)" onclick="openVE('closure','Emergency Closure')">Emergency Closure</div>
           <div class="day-type-pill" style="background:var(--makeup-bg);color:var(--makeup-color)" onclick="openVE('makeup','Make-up Day')">Make-up Day</div>
         </div>
@@ -607,7 +605,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <option value="school">School Day</option>
         <option value="early">Early Dismissal</option>
         <option value="event">School Event</option>
-        <option value="exam">Exam Day</option>
         <option value="pd">PD Day</option>
         <option value="holiday">Public Holiday</option>
         <option value="break">School Break</option>
@@ -650,7 +647,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <select class="form-select" id="eventType">
         <option value="event">School Event</option>
         <option value="early">Early Dismissal</option>
-        <option value="exam">Exam Day</option>
         <option value="makeup">Make-up Day</option>
         <option value="closure">Emergency Closure</option>
         <option value="holiday">Public Holiday</option>
@@ -690,7 +686,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <option value="pd">PD Day</option>
         <option value="event">School Event</option>
         <option value="early">Early Dismissal</option>
-        <option value="exam">Exam Day</option>
         <option value="closure">Emergency Closure</option>
         <option value="makeup">Make-up Day</option>
       </select>
@@ -732,14 +727,14 @@ const CALENDAR_MONTHS = [
   {year:2027,month:0},{year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4},{year:2027,month:5}
 ];
 const TYPE_COLORS = {
-  school:'#7B4FBE',early:'#c2410c',event:'#1d4ed8',exam:'#854d0e',pd:'#0891b2',
-  holiday:'#dc2626',break:'#d97706',closure:'#be185d',makeup:'#065f46'
+  school:'#7B4FBE',early:'#475569',event:'#1d4ed8',pd:'#0891b2',
+  holiday:'#dc2626',break:'#d97706',closure:'#475569',makeup:'#475569'
 };
 const TYPE_BG = {
-  school:'var(--school-bg)',early:'var(--early-bg)',event:'var(--event-bg)',exam:'var(--exam-bg)',
+  school:'var(--school-bg)',early:'var(--early-bg)',event:'var(--event-bg)',
   pd:'var(--pd-bg)',holiday:'var(--holiday-bg)',break:'var(--break-bg)',closure:'var(--closure-bg)',makeup:'var(--makeup-bg)'
 };
-const COUNTS_AS_SCHOOL = ['school','event','exam','early','makeup'];
+const COUNTS_AS_SCHOOL = ['school','event','early','makeup'];
 
 // ── BASE DATA ────────────────────────────────────────────────────
 const BASE = {};
@@ -1315,7 +1310,7 @@ function openVE(type,label){
   document.getElementById('veModeRemove').style.background='white';
   document.getElementById('veModeRemove').style.color='#6b6b6b';
   document.getElementById('veModeHint').textContent='Click days to assign · Weekends allowed';
-  const needsLabel=['event','early','closure','makeup','exam'].includes(type);
+  const needsLabel=['event','early','closure','makeup'].includes(type);
   document.getElementById('veLabel').style.display=needsLabel?'block':'none';
   renderVE();
   document.getElementById('veOverlay').classList.add('open');
@@ -1539,7 +1534,7 @@ function renderApprovals(){
   const list=document.getElementById('approvalList');
   const pending=pendingChanges.filter(p=>p.status==='pending');
   if(!pending.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">All clear</div><div style="font-size:14px;color:var(--text-muted);">No pending changes.</div></div>`;return;}
-  const typeLabels={school:'School Day',early:'Early Dismissal',event:'School Event',exam:'Exam Day',pd:'PD Day',holiday:'Public Holiday',break:'School Break',closure:'Emergency Closure',makeup:'Make-up Day',none:'Remove'};
+  const typeLabels={school:'School Day',early:'Early Dismissal',event:'School Event',pd:'PD Day',holiday:'Public Holiday',break:'School Break',closure:'Emergency Closure',makeup:'Make-up Day',none:'Remove'};
   list.innerHTML=pending.map(p=>`
     <div class="approval-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
