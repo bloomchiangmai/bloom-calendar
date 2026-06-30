@@ -406,24 +406,20 @@ const TYPE_META={
 };
 
 function renderMainLegendStrip(){
-  // Curated, minimal legend for the main Calendar page. Full 9-type legend stays under Key Dates.
-  const used=new Set();
+  // Fixed curated legend for the main Calendar page: always shows these 5 reference colors,
+  // regardless of whether a given month currently has that day type. Full 9-type legend stays under Key Dates.
   let hasToday=false;
   const today=new Date();
   MONTHS.forEach(({year,month})=>{
     const dim=new Date(year,month+1,0).getDate();
     for(let d=1;d<=dim;d++){
-      const data=getDay(year,month,d);
-      if(data&&data.type)used.add(data.type);
       if(today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d)hasToday=true;
     }
   });
   const pill=t=>`<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}">${TYPE_META[t].label}</span>`;
   let html='';
-  const row1=['school','break'].filter(t=>used.has(t));
-  if(row1.length)html+=`<div class="main-legend-row">${row1.map(pill).join('')}</div>`;
-  const row2=['holiday','pd','event'].filter(t=>used.has(t));
-  if(row2.length)html+=`<div class="main-legend-row">${row2.map(pill).join('')}</div>`;
+  html+=`<div class="main-legend-row">${['school','break'].map(pill).join('')}</div>`;
+  html+=`<div class="main-legend-row">${['holiday','pd','event'].map(pill).join('')}</div>`;
   if(hasToday)html+=`<div class="main-legend-row"><span class="main-legend-pill" style="background:var(--orange);color:white">Today</span></div>`;
   document.getElementById('mainLegendStrip').innerHTML=html;
 }
