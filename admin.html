@@ -319,7 +319,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       Please sign in on a computer to finish setting up your academic year, then return here to manage things on the go.
     </div>
     <a href="index.html" class="login-back">← Back to calendar</a>
-    <div id="debugDiag" style="font-size:10px;color:#999;margin-top:16px;text-align:center;word-break:break-all;"></div>
   </div>
 </div>
 
@@ -868,8 +867,6 @@ function routeAfterAuth(setupDone){
   if(!setupDone){
     if(isMobile){
       document.getElementById('mobileSetupRequired').style.display='flex';
-      const diag=document.getElementById('debugDiag');
-      if(diag)diag.textContent=`debug: locId=${_locId} yearId=${_yearId} localFlag=${localStorage.getItem('bloom_setup_done')}`;
     }else{
       showOnboarding();
     }
