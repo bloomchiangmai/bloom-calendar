@@ -184,6 +184,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}
   .header,.stats-bar,.main-legend-strip{max-width:1400px;margin:0 auto;}
 }
+@media(max-width:768px){
+  html,body{height:100%;overflow:hidden;}
+  body{display:flex;flex-direction:column;}
+  .header{flex-shrink:0;position:static;}
+  .scroll-shell{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+}
 </style>
 </head>
 <body>
@@ -195,6 +201,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="header-center">Academic Calendar 2026–2027</div>
   <div class="header-right"></div>
 </header>
+
+<div class="scroll-shell" id="scrollShell">
 
 <div class="stats-bar">
   <div class="stat-group stat-group-year">
@@ -347,6 +355,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div>Bloom Chiangmai. All rights reserved.</div>
   <a href="admin.html" class="staff-access-link">Staff Access</a>
 </footer>
+
+</div>
 
 <nav class="mobile-nav">
   <div class="mobile-nav-inner">
