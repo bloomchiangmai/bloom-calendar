@@ -141,6 +141,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .mini-cal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;align-items:start;}
 .mini-month{background:white;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
 .mini-month-hdr{background:var(--purple);padding:8px 10px;text-align:center;}
+@media(max-width:768px){.mini-month-hdr{cursor:pointer;}}
 .mini-month-name{font-family:'Fraunces',serif;font-size:12px;color:white;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;}
 .mini-month-yr{font-size:10px;color:rgba(255,255,255,0.7);}
 .mini-body{padding:6px;}
@@ -1153,6 +1154,9 @@ async function finishSetup(){
 }
 
 // ── APP ──────────────────────────────────────────────────────────
+window.addEventListener('resize',()=>{
+  if(!isMobileAdmin()&&adminZoomedMonthIdx!==null){adminZoomedMonthIdx=null;renderAdminCalendar();}
+});
 function showApp(){
   document.getElementById('app').classList.add('visible');
   loadSettings();
@@ -1238,18 +1242,38 @@ function updateAttention(){
 }
 
 // ── ADMIN CALENDAR ────────────────────────────────────────────────
+let adminZoomedMonthIdx=null;
+
+function isMobileAdmin(){return window.innerWidth<=768;}
+
+function openAdminMonthZoom(idx){
+  if(!isMobileAdmin())return; // desktop keeps its current behavior, no zoom
+  adminZoomedMonthIdx=idx;
+  renderAdminCalendar();
+}
+
+function closeAdminMonthZoom(){
+  adminZoomedMonthIdx=null;
+  renderAdminCalendar();
+}
+
 function renderAdminCalendar(){
   const grid=document.getElementById('adminCalGrid');
   grid.innerHTML='';
+  grid.style.gridTemplateColumns='';
   const today=new Date();
-  CALENDAR_MONTHS.forEach(({year,month})=>{
+  if(isMobileAdmin()&&adminZoomedMonthIdx!==null){
+    renderAdminMonthZoom(grid,today);
+    return;
+  }
+  CALENDAR_MONTHS.forEach(({year,month},idx)=>{
     const card=document.createElement('div');
     card.className='mini-month';
     const fd=new Date(year,month,1).getDay();
     const offset=fd===0?6:fd-1;
     const dim=new Date(year,month+1,0).getDate();
     const trailing=(7-(offset+dim)%7)%7;
-    let html=`<div class="mini-month-hdr"><div class="mini-month-name">${MONTH_NAMES[month]}</div><div class="mini-month-yr">${year}</div></div>
+    let html=`<div class="mini-month-hdr" onclick="openAdminMonthZoom(${idx})"><div class="mini-month-name">${MONTH_NAMES[month]}</div><div class="mini-month-yr">${year}</div></div>
     <div class="mini-body"><div class="mini-day-hdrs"><div class="mini-day-hdr">M</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">W</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">F</div><div class="mini-day-hdr">S</div><div class="mini-day-hdr">S</div></div><div class="mini-days">`;
     for(let i=0;i<offset;i++)html+=`<div class="mini-day empty"></div>`;
     for(let d=1;d<=dim;d++){
@@ -1263,13 +1287,45 @@ function renderAdminCalendar(){
       else if(data)cls+=` ${data.type}`;
       else if(isWeekend)cls+=' weekend';
       if(pend)cls+=' pending';
-      html+=`<div class="${cls}" onclick="openEditDay(${year},${month},${d})">${d}</div>`;
+      // Mobile stays read-only (item #29) — day tap only opens the edit form on desktop
+      const tap=isMobileAdmin()?'':` onclick="openEditDay(${year},${month},${d})"`;
+      html+=`<div class="${cls}"${tap}>${d}</div>`;
     }
     for(let i=0;i<trailing;i++)html+=`<div class="mini-day empty"></div>`;
     html+=`</div></div>`;
     card.innerHTML=html;
     grid.appendChild(card);
   });
+}
+
+function renderAdminMonthZoom(grid,today){
+  const {year,month}=CALENDAR_MONTHS[adminZoomedMonthIdx];
+  const fd=new Date(year,month,1).getDay();
+  const offset=fd===0?6:fd-1;
+  const dim=new Date(year,month+1,0).getDate();
+  const trailing=(7-(offset+dim)%7)%7;
+  let daysHtml='';
+  for(let i=0;i<offset;i++)daysHtml+=`<div class="mini-day empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const data=getDayData(year,month,d);
+    const isToday=today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d;
+    const dow=new Date(year,month,d).getDay();
+    const isWeekend=dow===0||dow===6;
+    let cls='mini-day';
+    if(isToday)cls+=' today';
+    else if(data)cls+=` ${data.type}`;
+    else if(isWeekend)cls+=' weekend';
+    daysHtml+=`<div class="${cls}">${d}</div>`;
+  }
+  for(let i=0;i<trailing;i++)daysHtml+=`<div class="mini-day empty"></div>`;
+  grid.style.gridTemplateColumns='1fr';
+  grid.innerHTML=`<div class="mini-month">
+    <div class="mini-month-hdr" style="cursor:default;display:flex;align-items:center;justify-content:space-between;">
+      <button onclick="event.stopPropagation();closeAdminMonthZoom()" style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:20px;padding:5px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">← All months</button>
+      <div style="text-align:right;"><div class="mini-month-name">${MONTH_NAMES[month]}</div><div class="mini-month-yr">${year}</div></div>
+    </div>
+    <div class="mini-body"><div class="mini-day-hdrs"><div class="mini-day-hdr">M</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">W</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">F</div><div class="mini-day-hdr">S</div><div class="mini-day-hdr">S</div></div><div class="mini-days">${daysHtml}</div></div>
+  </div>`;
 }
 
 // ── EDIT DAY (single click on calendar) ──────────────────────────
