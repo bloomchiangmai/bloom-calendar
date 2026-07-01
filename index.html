@@ -1035,6 +1035,7 @@ const _supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
   auth:{storage:bloomHubCookieStorage,storageKey:'bloom-hub-auth',persistSession:true,autoRefreshToken:true}
 });
 
+window._bloomCurrentEmail=null;
 _supabase.auth.onAuthStateChange((event,session)=>{
   const btn=document.getElementById('authNavBtn');
   if(session&&session.user){
@@ -1042,13 +1043,21 @@ _supabase.auth.onAuthStateChange((event,session)=>{
     btn.onclick=openAccountModal;
     document.getElementById('accountEmail').textContent=session.user.email||'—';
     document.getElementById('accountName').value=session.user.user_metadata?.display_name||'';
+    window._bloomCurrentEmail=session.user.email;
     checkNotifyBadge(session.user.email);
   }else{
     btn.textContent='Sign in';
     btn.onclick=openAuthModal;
+    window._bloomCurrentEmail=null;
     setNotifyBadge(false);
   }
 });
+
+// Periodically re-check for a new acknowledgement while signed in, so the
+// badge shows up without needing a manual refresh (checked every 60s).
+setInterval(()=>{
+  if(window._bloomCurrentEmail)checkNotifyBadge(window._bloomCurrentEmail);
+},60000);
 
 async function checkNotifyBadge(email){
   const {count,error}=await _supabase.from('bloom_absence_reports')
