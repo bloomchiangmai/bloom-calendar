@@ -380,6 +380,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="attention-item" id="attnDays" onclick="switchTab('calendar')" style="display:none">
       <span class="attention-dot red"></span><span id="attnDaysTxt"></span>
     </div>
+    <div class="attention-item" id="attnUnsynced" onclick="retryUnsyncedNow()" style="display:none">
+      <span class="attention-dot red"></span><span id="attnUnsyncedTxt"></span>
+    </div>
   </div>
 
   <div class="tabs">
@@ -507,8 +510,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="settings-group-title">Academic Year</div>
       <div class="settings-row" onclick="syncToCloud()" id="syncCloudBtn">
         <div>
-          <div class="settings-row-label">Sync to Cloud</div>
-          <div class="settings-row-sub" id="syncCloudStatus">Push current local data to the cloud database</div>
+          <div class="settings-row-label">Force Re-sync All</div>
+          <div class="settings-row-sub" id="syncCloudStatus">Changes now sync automatically — use this only if something looks out of date</div>
         </div>
         <span style="color:var(--text-muted);">›</span>
       </div>
@@ -1231,6 +1234,10 @@ function updateAttention(){
   if(total<180){ad.style.display='flex';document.getElementById('attnDaysTxt').textContent=`${180-total} days short of 180`;hasAny=true;}
   else ad.style.display='none';
 
+  const au=document.getElementById('attnUnsynced');
+  if(unsyncedQueue.length>0){au.style.display='flex';document.getElementById('attnUnsyncedTxt').textContent=`${unsyncedQueue.length} change${unsyncedQueue.length!==1?'s':''} not yet synced — tap to retry`;hasAny=true;}
+  else au.style.display='none';
+
   document.getElementById('attentionStrip').classList.toggle('has-items',hasAny);
 
   const ab=document.getElementById('absenceBadge');
@@ -1505,6 +1512,7 @@ function veApply(){
       dates.forEach(dateKey=>overrides[dateKey]={type:veType,label});
     }
     localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
+    sbSyncDates(dates,veType,label,isRemove);
     addAuditEntry(`${dates.length} days ${isRemove?'removed':'set to '+veType}${label?' ('+label+')':''}`,'Admin');
     closeVE();calcDays();renderAdminCalendar();updateAttention();
   } else {
@@ -1545,6 +1553,7 @@ function submitEvent(){
   if(!settings.approval){
     overrides[date]={type,label:name};
     localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
+    sbSyncDates([date],type,name,false);
     addAuditEntry(`Event "${name}" added on ${date} (direct)`,'Admin');
     closeModal('addEventModal');calcDays();renderAdminCalendar();
   } else {
@@ -1584,6 +1593,7 @@ function submitMultiSelect(){
   if(!settings.approval){
     dates.forEach(d=>overrides[d]={type,label:''});
     localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
+    sbSyncDates(dates,type,'',false);
     addAuditEntry(`${dates.length} days (${from}→${to}) set to ${type} (direct)`,'Admin');
     closeModal('multiSelectModal');calcDays();renderAdminCalendar();
   } else {
@@ -1830,6 +1840,32 @@ const SB_URL='https://ndlcfgkhxjoancdvmgmr.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
 const _sb=window.supabase.createClient(SB_URL,SB_KEY);
 let _locId=null,_yearId=null;
+let unsyncedQueue=JSON.parse(localStorage.getItem('bloom_cal_unsynced')||'[]');
+
+function markUnsynced(date,type,label,deleted){
+  unsyncedQueue=unsyncedQueue.filter(u=>u.date!==date);
+  unsyncedQueue.push({date,type,label,deleted:!!deleted});
+  localStorage.setItem('bloom_cal_unsynced',JSON.stringify(unsyncedQueue));
+  updateAttention();
+}
+
+function clearUnsynced(date){
+  unsyncedQueue=unsyncedQueue.filter(u=>u.date!==date);
+  localStorage.setItem('bloom_cal_unsynced',JSON.stringify(unsyncedQueue));
+  updateAttention();
+}
+
+async function retryUnsyncedNow(){
+  if(unsyncedQueue.length===0)return;
+  await sbInit();
+  const queue=[...unsyncedQueue];
+  for(const item of queue){
+    if(item.deleted)await sbDeleteEvent(item.date);
+    else await sbSaveEvent(item.date,item.type,item.label);
+  }
+}
+
+window.addEventListener('online',()=>{if(unsyncedQueue.length>0)retryUnsyncedNow();});
 
 async function sbInit(){
   try{
@@ -1849,20 +1885,38 @@ async function sbInit(){
 }
 
 async function sbSaveEvent(date,dayType,label=''){
-  if(!_locId||!_yearId)return;
+  if(!_locId||!_yearId){markUnsynced(date,dayType,label,false);return false;}
   try{
     await _sb.from('bloom_calendar_events').upsert(
       {location_id:_locId,academic_year_id:_yearId,date,day_type:dayType,label,updated_at:new Date().toISOString()},
       {onConflict:'location_id,date'}
     );
-  }catch(e){console.log('Supabase save failed',e);}
+    clearUnsynced(date);
+    return true;
+  }catch(e){console.log('Supabase save failed',e);markUnsynced(date,dayType,label,false);return false;}
 }
 
 async function sbDeleteEvent(date){
-  if(!_locId)return;
+  if(!_locId){markUnsynced(date,null,null,true);return false;}
   try{
     await _sb.from('bloom_calendar_events').delete().eq('location_id',_locId).eq('date',date);
-  }catch(e){console.log('Supabase delete failed',e);}
+    clearUnsynced(date);
+    return true;
+  }catch(e){console.log('Supabase delete failed',e);markUnsynced(date,null,null,true);return false;}
+}
+
+// Sync a batch of dates to the same type/label (Add Event, Multi-select, Visual Editor)
+async function sbSyncDates(dates,type,label,isRemove){
+  if(!_locId||!_yearId){dates.forEach(d=>markUnsynced(d,type,label,isRemove));return;}
+  try{
+    if(isRemove){
+      for(const d of dates)await _sb.from('bloom_calendar_events').delete().eq('location_id',_locId).eq('date',d);
+    }else{
+      const rows=dates.map(d=>({location_id:_locId,academic_year_id:_yearId,date:d,day_type:type,label:label||'',updated_at:new Date().toISOString()}));
+      for(let i=0;i<rows.length;i+=100)await _sb.from('bloom_calendar_events').upsert(rows.slice(i,i+100),{onConflict:'location_id,date'});
+    }
+    dates.forEach(d=>clearUnsynced(d));
+  }catch(e){console.log('Bulk sync failed',e);dates.forEach(d=>markUnsynced(d,type,label,isRemove));}
 }
 
 async function sbSaveBulk(events){
