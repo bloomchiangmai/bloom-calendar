@@ -50,7 +50,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(min-width:769px){.notify-header-btn{display:inline-block;}}
 .admin-link{display:none;}
 .site-footer{text-align:center;padding:24px 4% 90px;font-size:11px;color:#b5b0a8;line-height:1.6;}
-.site-footer .staff-access-link{color:#b5b0a8;text-decoration:none;text-transform:uppercase;letter-spacing:0.04em;}
+.site-footer .staff-access-link{display:block;margin-top:6px;color:#b5b0a8;text-decoration:none;text-transform:uppercase;letter-spacing:0.04em;}
 .site-footer .staff-access-link:hover{color:var(--purple);}
 @media(min-width:769px){.site-footer{padding:24px 4%;}}
 
@@ -221,7 +221,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   html,body{height:100%;overflow:hidden;}
   body{display:flex;flex-direction:column;}
   .header{flex-shrink:0;position:static;}
-  .scroll-shell{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin-bottom:calc(60px + env(safe-area-inset-bottom, 0px));}
+  .scroll-shell{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;margin-bottom:calc(60px + env(safe-area-inset-bottom, 0px));padding-bottom:24px;}
 }
 </style>
 </head>
