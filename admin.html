@@ -1154,12 +1154,12 @@ async function finishSetup(){
 window.addEventListener('resize',()=>{
   if(!isMobileAdmin()&&adminZoomedMonthIdx!==null){adminZoomedMonthIdx=null;renderAdminCalendar();}
 });
-function showApp(){
+async function showApp(){
   document.getElementById('app').classList.add('visible');
   loadSettings();
   calcDays();
   renderAdminCalendar();
-  renderAbsences();
+  await renderAbsences();
   renderApprovals();
   updateAttention();
   renderAuditLog();
