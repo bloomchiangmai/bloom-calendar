@@ -1243,16 +1243,19 @@ function updateAttention(){
 
 // ── ADMIN CALENDAR ────────────────────────────────────────────────
 let adminZoomedMonthIdx=null;
+let adminLastZoomedMonthIdx=null;
 
 function isMobileAdmin(){return window.innerWidth<=768;}
 
 function openAdminMonthZoom(idx){
   if(!isMobileAdmin())return; // desktop keeps its current behavior, no zoom
   adminZoomedMonthIdx=idx;
+  adminLastZoomedMonthIdx=idx;
   renderAdminCalendar();
 }
 
 function closeAdminMonthZoom(){
+  adminLastZoomedMonthIdx=adminZoomedMonthIdx;
   adminZoomedMonthIdx=null;
   renderAdminCalendar();
 }
@@ -1780,6 +1783,7 @@ function archiveYear(){
 
 // ── SETTINGS ─────────────────────────────────────────────────────
 function switchTab(tab){
+  const wasCalendarActive=tab==='calendar'&&document.getElementById('mnav-calendar').classList.contains('active')&&document.getElementById('content-calendar').classList.contains('active');
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.mobile-nav-btn').forEach(el=>el.classList.remove('active'));
@@ -1788,7 +1792,21 @@ function switchTab(tab){
   document.getElementById(`mnav-${tab}`)?.classList.add('active');
   if(tab==='absences')renderAbsences();
   if(tab==='approvals')renderApprovals();
-  if(tab==='calendar')renderAuditLog();
+  if(tab==='calendar'){
+    renderAuditLog();
+    if(isMobileAdmin()&&wasCalendarActive){
+      // Tapping Calendar again toggles full-year <-> monthly view (mirrors public page)
+      if(adminZoomedMonthIdx===null){
+        const today=new Date();
+        const idx=CALENDAR_MONTHS.findIndex(m=>m.year===today.getFullYear()&&m.month===today.getMonth());
+        adminZoomedMonthIdx=idx>=0?idx:(adminLastZoomedMonthIdx!==null?adminLastZoomedMonthIdx:0);
+      }else{
+        adminLastZoomedMonthIdx=adminZoomedMonthIdx;
+        adminZoomedMonthIdx=null;
+      }
+      renderAdminCalendar();
+    }
+  }
 }
 
 // ── UTILS ─────────────────────────────────────────────────────────
