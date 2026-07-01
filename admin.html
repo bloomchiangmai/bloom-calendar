@@ -1287,9 +1287,8 @@ function renderAdminCalendar(){
       else if(data)cls+=` ${data.type}`;
       else if(isWeekend)cls+=' weekend';
       if(pend)cls+=' pending';
-      // Mobile stays read-only (item #29) — day tap only opens the edit form on desktop
-      const tap=isMobileAdmin()?'':` onclick="openEditDay(${year},${month},${d})"`;
-      html+=`<div class="${cls}"${tap}>${d}</div>`;
+      // Day tap opens the edit form on both desktop and mobile
+      html+=`<div class="${cls}" onclick="openEditDay(${year},${month},${d})">${d}</div>`;
     }
     for(let i=0;i<trailing;i++)html+=`<div class="mini-day empty"></div>`;
     html+=`</div></div>`;
@@ -1315,7 +1314,7 @@ function renderAdminMonthZoom(grid,today){
     if(isToday)cls+=' today';
     else if(data)cls+=` ${data.type}`;
     else if(isWeekend)cls+=' weekend';
-    daysHtml+=`<div class="${cls}">${d}</div>`;
+    daysHtml+=`<div class="${cls}" onclick="openEditDay(${year},${month},${d})">${d}</div>`;
   }
   for(let i=0;i<trailing;i++)daysHtml+=`<div class="mini-day empty"></div>`;
   grid.style.gridTemplateColumns='1fr';
