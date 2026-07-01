@@ -1326,9 +1326,21 @@ function renderAdminMonthZoom(grid,today){
     <div class="mini-month-hdr" style="cursor:default;display:flex;align-items:center;justify-content:space-between;">
       <button onclick="event.stopPropagation();closeAdminMonthZoom()" style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:20px;padding:5px 14px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">← All months</button>
       <div style="text-align:right;"><div class="mini-month-name">${MONTH_NAMES[month]}</div><div class="mini-month-yr">${year}</div></div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="event.stopPropagation();adminChangeMonth(-1)" ${adminZoomedMonthIdx<=0?'disabled style="opacity:0.3;"':''} style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:50%;width:28px;height:28px;font-size:15px;cursor:pointer;">‹</button>
+        <button onclick="event.stopPropagation();adminChangeMonth(1)" ${adminZoomedMonthIdx>=CALENDAR_MONTHS.length-1?'disabled style="opacity:0.3;"':''} style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:50%;width:28px;height:28px;font-size:15px;cursor:pointer;">›</button>
+      </div>
     </div>
     <div class="mini-body"><div class="mini-day-hdrs"><div class="mini-day-hdr">M</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">W</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">F</div><div class="mini-day-hdr">S</div><div class="mini-day-hdr">S</div></div><div class="mini-days">${daysHtml}</div></div>
   </div>`;
+}
+
+function adminChangeMonth(delta){
+  const next=adminZoomedMonthIdx+delta;
+  if(next<0||next>=CALENDAR_MONTHS.length)return;
+  adminZoomedMonthIdx=next;
+  adminLastZoomedMonthIdx=next;
+  renderAdminCalendar();
 }
 
 // ── EDIT DAY (single click on calendar) ──────────────────────────
