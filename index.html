@@ -153,6 +153,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .notify-history-meta{color:var(--text-muted);font-size:12px;margin-top:3px;}
 .notify-history-delete{background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;}
 .notify-history-delete:hover{color:#dc2626;}
+.bloom-toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--purple);color:white;padding:12px 20px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.2);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s ease,transform 0.25s ease;max-width:85%;text-align:center;}
+.bloom-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.bloom-toast.error{background:#c0392b;}
+@media(min-width:769px){.bloom-toast{bottom:24px;}}
 .notify-pending-dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#dc2626;border:1.5px solid white;}
 #navNotify .notify-pending-dot{top:4px;right:14px;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
@@ -389,6 +393,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 </div>
 
+<!-- TOAST -->
+<div class="bloom-toast" id="bloomToast"></div>
+
+<!-- CONFIRM MODAL (replaces native confirm()) -->
+<div class="popup-overlay" id="confirmOverlay">
+  <div class="popup auth-popup" style="max-width:300px;">
+    <div class="popup-date" id="confirmTitle" style="font-size:15px;">Are you sure?</div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="auth-submit-btn" style="background:white;border:1px solid var(--border);color:var(--text);" onclick="_confirmResolve(false)">Cancel</button>
+      <button class="auth-submit-btn" id="confirmOkBtn" onclick="_confirmResolve(true)">Delete</button>
+    </div>
+  </div>
+</div>
+
 <nav class="mobile-nav">
   <div class="mobile-nav-inner">
     <button class="mobile-nav-item active" id="navCalendar" onclick="mobileNav('calendar')">
@@ -502,6 +520,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 window._bloomAuthMode='signin';
+
+// In-app toast, replaces alert() — no browser chrome, no "site says", no
+// Suppress dialogues option, since it's not a native browser popup at all.
+let _toastTimer=null;
+function showToast(message,type='info'){
+  const t=document.getElementById('bloomToast');
+  t.textContent=message;
+  t.className='bloom-toast show'+(type==='error'?' error':'');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{t.classList.remove('show');},3000);
+}
+
+// In-app confirm, replaces confirm() — returns a Promise<boolean>.
+function showConfirm(message,okLabel='Delete'){
+  document.getElementById('confirmTitle').textContent=message;
+  document.getElementById('confirmOkBtn').textContent=okLabel;
+  document.getElementById('confirmOverlay').classList.add('open');
+  return new Promise(resolve=>{window._confirmResolveFn=resolve;});
+}
+function _confirmResolve(result){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  if(window._confirmResolveFn)window._confirmResolveFn(result);
+}
 // iOS Safari sometimes fails to release its visual-viewport pan after a
 // keyboard closes (e.g. right after submitting the sign-in form), leaving
 // the page looking scrolled even though nothing actually scrolled. Blur the
@@ -572,9 +613,10 @@ async function loadNotifyHistory(email){
 }
 
 async function deleteNotifyHistoryItem(id,email){
-  if(!confirm('Delete this notice? This cannot be undone.'))return;
+  const ok=await showConfirm('Delete this notice? This cannot be undone.');
+  if(!ok)return;
   const {error}=await _supabase.from('bloom_absence_reports').delete().eq('id',id);
-  if(error){alert('Could not delete: '+(error.message||'error'));return;}
+  if(error){showToast('Could not delete: '+(error.message||'error'),'error');return;}
   loadNotifyHistory(email);
   checkNotifyBadge(email);
 }
@@ -588,11 +630,11 @@ async function submitNotify(){
   const dateEnd=document.getElementById('notifyDateEnd').value||null;
   const note=document.getElementById('notifyNote').value.trim()||null;
   const reason=window._notifyReason;
-  if(!learnerName){alert('Please enter your child\'s name.');return;}
-  if(!reason){alert('Please select a reason.');return;}
-  if(!dateStart){alert('Please select the first day away.');return;}
+  if(!learnerName){showToast('Please enter your child\'s name.','error');return;}
+  if(!reason){showToast('Please select a reason.','error');return;}
+  if(!dateStart){showToast('Please select the first day away.','error');return;}
   const otherText=document.getElementById('notifyOtherText').value.trim();
-  if(reason==='other'&&!otherText){alert('Please specify the reason.');return;}
+  if(reason==='other'&&!otherText){showToast('Please specify the reason.','error');return;}
   const {error}=await _supabase.from('bloom_absence_reports').insert({
     learner_name:learnerName,
     date_start:dateStart,
@@ -603,9 +645,9 @@ async function submitNotify(){
     submitted_by_name:session.user.user_metadata?.display_name||null,
     status:'new'
   });
-  if(error){alert('Could not send: '+(error.message||'error'));return;}
+  if(error){showToast('Could not send: '+(error.message||'error'),'error');return;}
   closeNotifyModal();
-  alert('Notice sent 🌿');
+  showToast('Notice sent 🌿');
 }
 
 function toggleAuthMode(){
@@ -626,7 +668,7 @@ async function doAuth(){
   const {data,error}=isSignUp
     ?await _supabase.auth.signUp({email,password:pass})
     :await _supabase.auth.signInWithPassword({email,password:pass});
-  if(error||!data?.session){alert(error?.message||'Invalid email or password');return;}
+  if(error||!data?.session){showToast(error?.message||'Invalid email or password','error');return;}
   if(isSignUp){
     const first=document.getElementById('authFirst').value.trim();
     const last=document.getElementById('authLast').value.trim();
@@ -639,29 +681,29 @@ async function doAuth(){
 
 async function forgotPassword(){
   const email=document.getElementById('authEmail').value.trim();
-  if(!email){alert('Enter your email first, then tap Forgot password.');return;}
+  if(!email){showToast('Enter your email first, then tap Forgot password.','error');return;}
   const {error}=await _supabase.auth.resetPasswordForEmail(email);
-  if(error)alert(error.message);else alert('Password reset email sent — check your inbox.');
+  if(error)showToast(error.message,'error');else showToast('Password reset email sent — check your inbox.');
 }
 
 async function saveAccountName(){
   const name=document.getElementById('accountName').value.trim();
-  if(!name){alert('Enter a name first.');return;}
+  if(!name){showToast('Enter a name first.','error');return;}
   const {error}=await _supabase.auth.updateUser({data:{display_name:name}});
-  if(error){alert('Could not update name: '+(error.message||'error'));return;}
-  alert('Name updated.');
+  if(error){showToast('Could not update name: '+(error.message||'error'),'error');return;}
+  showToast('Name updated.');
 }
 
 async function saveAccountPassword(){
   const pass=document.getElementById('accountNewPass').value;
-  const confirm=document.getElementById('accountConfirmPass').value;
-  if(!pass||pass.length<6){alert('Password must be at least 6 characters.');return;}
-  if(pass!==confirm){alert('Passwords do not match.');return;}
+  const confirmPass=document.getElementById('accountConfirmPass').value;
+  if(!pass||pass.length<6){showToast('Password must be at least 6 characters.','error');return;}
+  if(pass!==confirmPass){showToast('Passwords do not match.','error');return;}
   const {error}=await _supabase.auth.updateUser({password:pass});
-  if(error){alert('Could not update password: '+(error.message||'error'));return;}
+  if(error){showToast('Could not update password: '+(error.message||'error'),'error');return;}
   document.getElementById('accountNewPass').value='';
   document.getElementById('accountConfirmPass').value='';
-  alert('Password updated — please sign in again with your new password.');
+  showToast('Password updated — please sign in again with your new password.');
   await _supabase.auth.signOut();
   closeAccountModal();
   openAuthModal();
@@ -671,8 +713,8 @@ async function confirmDeleteAccount(){
   const {data:{session}}=await _supabase.auth.getSession();
   const typed=document.getElementById('deleteConfirmEmail').value.trim().toLowerCase();
   const actual=(session?.user?.email||'').toLowerCase();
-  if(!typed){alert('Please type your email to confirm.');return;}
-  if(typed!==actual){alert('Email does not match.');return;}
+  if(!typed){showToast('Please type your email to confirm.','error');return;}
+  if(typed!==actual){showToast('Email does not match.','error');return;}
   try{
     const token=session?.access_token;
     await fetch('https://ndlcfgkhxjoancdvmgmr.supabase.co/functions/v1/swift-worker',{
@@ -682,8 +724,8 @@ async function confirmDeleteAccount(){
     });
     await _supabase.auth.signOut();
     closeDeleteAccountModal();
-    alert('Account deleted.');
-  }catch(e){alert('Could not delete account: '+(e.message||'error'));}
+    showToast('Account deleted.');
+  }catch(e){showToast('Could not delete account: '+(e.message||'error'),'error');}
 }
 
 async function doSignOut(){
