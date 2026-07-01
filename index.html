@@ -130,7 +130,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* POPUP */
 .popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;}
 .popup-overlay.open{display:flex;}
-.popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;}
+.popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .auth-popup{max-width:340px;}
 .auth-fg{margin-bottom:12px;}
 .auth-fg label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;}
