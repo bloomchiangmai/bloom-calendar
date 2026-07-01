@@ -144,6 +144,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .notify-reason-chips{display:flex;flex-wrap:wrap;gap:8px;}
 .notify-chip{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--text);}
 .notify-chip.selected{background:var(--purple);border-color:var(--purple);color:white;}
+.notify-history-card{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;}
+.notify-history-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.notify-history-name{font-weight:700;}
+.notify-status-badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;}
+.notify-status-badge.new{background:#fde8e8;color:#c0392b;}
+.notify-status-badge.acknowledged{background:#e3f6e8;color:#1e8449;}
+.notify-history-meta{color:var(--text-muted);font-size:12px;margin-top:3px;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
 .popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
@@ -461,7 +468,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="popup auth-popup account-popup">
     <button class="popup-close" onclick="closeNotifyModal()">✕</button>
     <div class="popup-date">Notify the school</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Let the school know your child will be away.</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Let the school know your child will be away.</div>
+    <div id="notifyHistorySection" style="display:none;">
+      <div class="auth-section-title">My notices</div>
+      <div id="notifyHistoryList" style="margin-bottom:16px;"></div>
+    </div>
+    <div class="auth-section-title">New notice</div>
     <div class="auth-fg"><label>Child's name</label><input type="text" id="notifyChildName" placeholder="Child's full name"></div>
     <div class="auth-fg">
       <label>Reason</label>
@@ -525,6 +537,29 @@ async function openNotifyModal(){
   document.querySelectorAll('.notify-chip').forEach(c=>c.classList.remove('selected'));
   document.getElementById('notifyOtherFg').style.display='none';
   document.getElementById('notifyOverlay').classList.add('open');
+  loadNotifyHistory(session.user.email);
+}
+
+async function loadNotifyHistory(email){
+  const section=document.getElementById('notifyHistorySection');
+  const list=document.getElementById('notifyHistoryList');
+  const {data,error}=await _supabase.from('bloom_absence_reports')
+    .select('*').eq('submitted_by_email',email)
+    .order('created_at',{ascending:false}).limit(5);
+  if(error||!data||!data.length){section.style.display='none';return;}
+  const reasonLabels={sick:'Sick / Fever',appointment:"Doctor's appointment",travel:'Family travel',emergency:'Family emergency',other:'Other'};
+  section.style.display='block';
+  list.innerHTML=data.map(a=>{
+    const dateStr=a.date_end&&a.date_end!==a.date_start
+      ?`${a.date_start} → ${a.date_end}`:a.date_start;
+    return `<div class="notify-history-card">
+      <div class="notify-history-top">
+        <span class="notify-history-name">${a.learner_name}</span>
+        <span class="notify-status-badge ${a.status}">${a.status==='new'?'Received':'Acknowledged'}</span>
+      </div>
+      <div class="notify-history-meta">${dateStr} · ${reasonLabels[a.reason_type]||a.reason_type}</div>
+    </div>`;
+  }).join('');
 }
 function closeNotifyModal(){document.getElementById('notifyOverlay').classList.remove('open');resetViewportPan();}
 
