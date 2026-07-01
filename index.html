@@ -448,12 +448,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <script>
 window._bloomAuthMode='signin';
+// iOS Safari sometimes fails to release its visual-viewport pan after a
+// keyboard closes (e.g. right after submitting the sign-in form), leaving
+// the page looking scrolled even though nothing actually scrolled. Blur the
+// active input and force scroll back to top to release that pan.
+function resetViewportPan(){
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  setTimeout(()=>{
+    window.scrollTo(0,0);
+    document.documentElement.scrollTop=0;
+    document.body.scrollTop=0;
+    const shell=document.getElementById('scrollShell');
+    if(shell)shell.scrollTop=0;
+  },50);
+}
 function openAuthModal(){document.getElementById('authOverlay').classList.add('open');}
-function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');}
+function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');resetViewportPan();}
 function openAccountModal(){document.getElementById('accountOverlay').classList.add('open');}
-function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');}
+function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');resetViewportPan();}
 function openDeleteAccountModal(){document.getElementById('deleteConfirmEmail').value='';closeAccountModal();document.getElementById('deleteAccountOverlay').classList.add('open');}
-function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');}
+function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');resetViewportPan();}
 
 function toggleAuthMode(){
   window._bloomAuthMode=window._bloomAuthMode==='signin'?'signup':'signin';
