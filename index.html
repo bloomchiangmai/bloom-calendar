@@ -841,8 +841,16 @@ function closePopup(e){
     document.getElementById('popupOverlay').classList.remove('open');
 }
 
+let _wasMobileLayout=null;
+
 function handleResize(){
   const isMobile=window.innerWidth<=768;
+  // Only act on an actual mobile<->desktop breakpoint change. iOS Safari fires
+  // 'resize' events when the address bar collapses/expands during scroll —
+  // without this guard, that was forcing the view back to the Calendar tab
+  // every time someone scrolled the Key Dates tab.
+  if(isMobile===_wasMobileLayout)return;
+  _wasMobileLayout=isMobile;
   if(isMobile){
     document.getElementById('mobileMonthView').style.display='block';
     document.getElementById('mobileKeyDateView').style.display='none';
