@@ -137,6 +137,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .auth-signout-btn{background:none;border:1px solid var(--border);color:var(--text);margin-top:16px;}
 .auth-switch{text-align:center;font-size:13px;color:var(--text-muted);margin-top:14px;}
 .auth-switch a{color:var(--purple);font-weight:600;cursor:pointer;}
+.auth-section-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+.account-popup{max-width:360px;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
 .popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
@@ -413,11 +415,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 <!-- MY ACCOUNT -->
 <div class="popup-overlay" id="accountOverlay" onclick="if(event.target===this)closeAccountModal()">
-  <div class="popup auth-popup">
-    <button class="popup-close" onclick="closeAccountModal()">✕</button>
-    <div class="popup-date">My Account</div>
+  <div class="popup auth-popup account-popup">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="popup-date" style="margin:0;">My Account</div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <a onclick="openDeleteAccountModal()" style="font-size:11px;color:#aaa;cursor:pointer;text-decoration:underline;">Delete account</a>
+        <button class="popup-close" style="position:static;" onclick="closeAccountModal()">✕</button>
+      </div>
+    </div>
+    <div class="auth-section-title">Profile</div>
     <div class="auth-fg"><label>Email</label><div id="accountEmail" style="font-size:14px;padding:8px 0;">—</div></div>
-    <button class="auth-submit-btn auth-signout-btn" onclick="doSignOut()">Sign out</button>
+    <div class="auth-fg"><label>Display name</label><input type="text" id="accountName" placeholder="Your name"></div>
+    <button class="auth-submit-btn" onclick="saveAccountName()">Save name</button>
+    <div class="auth-section-title" style="margin-top:18px;">Change password</div>
+    <div class="auth-fg"><label>New password</label><input type="password" id="accountNewPass" placeholder="New password"></div>
+    <div class="auth-fg"><label>Confirm password</label><input type="password" id="accountConfirmPass" placeholder="Confirm password"></div>
+    <button class="auth-submit-btn" onclick="saveAccountPassword()">Update password</button>
+    <button class="auth-submit-btn auth-signout-btn" style="margin-top:16px;" onclick="doSignOut()">Sign out</button>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT CONFIRM -->
+<div class="popup-overlay" id="deleteAccountOverlay" onclick="if(event.target===this)closeDeleteAccountModal()">
+  <div class="popup auth-popup">
+    <button class="popup-close" onclick="closeDeleteAccountModal()">✕</button>
+    <div class="popup-date">Delete account</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">This permanently deletes your shared Bloom account — including your Bloombrary access. Type your email to confirm.</div>
+    <div class="auth-fg"><input type="text" id="deleteConfirmEmail" placeholder="you@email.com"></div>
+    <button class="auth-submit-btn" style="background:var(--holiday-color, #dc2626);" onclick="confirmDeleteAccount()">Permanently delete account</button>
   </div>
 </div>
 
@@ -427,6 +452,8 @@ function openAuthModal(){document.getElementById('authOverlay').classList.add('o
 function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');}
 function openAccountModal(){document.getElementById('accountOverlay').classList.add('open');}
 function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');}
+function openDeleteAccountModal(){document.getElementById('deleteConfirmEmail').value='';closeAccountModal();document.getElementById('deleteAccountOverlay').classList.add('open');}
+function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');}
 
 function toggleAuthMode(){
   window._bloomAuthMode=window._bloomAuthMode==='signin'?'signup':'signin';
@@ -447,6 +474,12 @@ async function doAuth(){
     ?await _supabase.auth.signUp({email,password:pass})
     :await _supabase.auth.signInWithPassword({email,password:pass});
   if(error||!data?.session){alert(error?.message||'Invalid email or password');return;}
+  if(isSignUp){
+    const first=document.getElementById('authFirst').value.trim();
+    const last=document.getElementById('authLast').value.trim();
+    const name=[first,last].filter(Boolean).join(' ');
+    if(name)await _supabase.auth.updateUser({data:{display_name:name}});
+  }
   closeAuthModal();
   document.getElementById('authForm').reset();
 }
@@ -456,6 +489,48 @@ async function forgotPassword(){
   if(!email){alert('Enter your email first, then tap Forgot password.');return;}
   const {error}=await _supabase.auth.resetPasswordForEmail(email);
   if(error)alert(error.message);else alert('Password reset email sent — check your inbox.');
+}
+
+async function saveAccountName(){
+  const name=document.getElementById('accountName').value.trim();
+  if(!name){alert('Enter a name first.');return;}
+  const {error}=await _supabase.auth.updateUser({data:{display_name:name}});
+  if(error){alert('Could not update name: '+(error.message||'error'));return;}
+  alert('Name updated.');
+}
+
+async function saveAccountPassword(){
+  const pass=document.getElementById('accountNewPass').value;
+  const confirm=document.getElementById('accountConfirmPass').value;
+  if(!pass||pass.length<6){alert('Password must be at least 6 characters.');return;}
+  if(pass!==confirm){alert('Passwords do not match.');return;}
+  const {error}=await _supabase.auth.updateUser({password:pass});
+  if(error){alert('Could not update password: '+(error.message||'error'));return;}
+  document.getElementById('accountNewPass').value='';
+  document.getElementById('accountConfirmPass').value='';
+  alert('Password updated — please sign in again with your new password.');
+  await _supabase.auth.signOut();
+  closeAccountModal();
+  openAuthModal();
+}
+
+async function confirmDeleteAccount(){
+  const {data:{session}}=await _supabase.auth.getSession();
+  const typed=document.getElementById('deleteConfirmEmail').value.trim().toLowerCase();
+  const actual=(session?.user?.email||'').toLowerCase();
+  if(!typed){alert('Please type your email to confirm.');return;}
+  if(typed!==actual){alert('Email does not match.');return;}
+  try{
+    const token=session?.access_token;
+    await fetch('https://ndlcfgkhxjoancdvmgmr.supabase.co/functions/v1/swift-worker',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({user_id:session.user.id})
+    });
+    await _supabase.auth.signOut();
+    closeDeleteAccountModal();
+    alert('Account deleted.');
+  }catch(e){alert('Could not delete account: '+(e.message||'error'));}
 }
 
 async function doSignOut(){
@@ -818,6 +893,7 @@ _supabase.auth.onAuthStateChange((event,session)=>{
     btn.textContent=(session.user.email||'Account').split('@')[0];
     btn.onclick=openAccountModal;
     document.getElementById('accountEmail').textContent=session.user.email||'—';
+    document.getElementById('accountName').value=session.user.user_metadata?.display_name||'';
   }else{
     btn.textContent='Sign in';
     btn.onclick=openAuthModal;
