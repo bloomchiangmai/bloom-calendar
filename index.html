@@ -541,7 +541,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </div>
 
 <!-- CUSTOM DATE PICKER (replaces native <input type=date>, which follows OS dark mode) -->
-<div class="popup-overlay" id="datePickerOverlay" onclick="if(event.target===this)closeDatePicker()">
+<div class="popup-overlay" id="datePickerOverlay" onclick="if(event.target===this)closeDatePicker()" style="z-index:300;">
   <div class="popup auth-popup" style="max-width:320px;">
     <button class="popup-close" onclick="closeDatePicker()">✕</button>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
