@@ -53,7 +53,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .main-legend-strip{background:var(--white);border-bottom:1px solid var(--border);padding:12px 4%;display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
 .main-legend-row{display:flex;justify-content:flex-start;flex-wrap:wrap;gap:8px;}
 .main-legend-pill{display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:13px;font-weight:600;}
-@media(max-width:768px){.main-legend-strip{padding:10px 1rem;}.main-legend-pill{font-size:12px;padding:4px 12px;}}
+.legend-desktop-rows{display:flex;flex-direction:column;gap:8px;}
+.legend-mobile-rows{display:none;flex-direction:column;gap:8px;}
+@media(max-width:768px){.main-legend-strip{padding:10px 1rem;}.main-legend-pill{font-size:12px;padding:4px 12px;}.legend-desktop-rows{display:none;}.legend-mobile-rows{display:flex;}}
 /* STATS BAR */
 .stat-group{display:contents;}
 .stats-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 4%;display:flex;gap:0;overflow-x:auto;scrollbar-width:none;}
@@ -179,7 +181,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .stat-value{font-size:16px;}
   .stat-label{font-size:10px;}
 }
-@media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}}
+@media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}
+  .header,.stats-bar,.main-legend-strip{max-width:1400px;margin:0 auto;}
+}
 </style>
 </head>
 <body>
@@ -417,10 +421,16 @@ function renderMainLegendStrip(){
     }
   });
   const pill=t=>`<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}">${TYPE_META[t].label}</span>`;
+  const todayPill=`<span class="main-legend-pill" style="background:var(--orange);color:white">Today</span>`;
   let html='';
+  // Desktop: all 5 types in a single row (ample width), Today appended at the end if applicable
+  html+=`<div class="legend-desktop-rows"><div class="main-legend-row">${['school','break','holiday','pd','event'].map(pill).join('')}${hasToday?todayPill:''}</div></div>`;
+  // Mobile: 2-row split (row1: school/break, row2: holiday/pd/event), Today gets its own row
+  html+=`<div class="legend-mobile-rows">`;
   html+=`<div class="main-legend-row">${['school','break'].map(pill).join('')}</div>`;
   html+=`<div class="main-legend-row">${['holiday','pd','event'].map(pill).join('')}</div>`;
-  if(hasToday)html+=`<div class="main-legend-row"><span class="main-legend-pill" style="background:var(--orange);color:white">Today</span></div>`;
+  if(hasToday)html+=`<div class="main-legend-row">${todayPill}</div>`;
+  html+=`</div>`;
   document.getElementById('mainLegendStrip').innerHTML=html;
 }
 
@@ -445,8 +455,15 @@ function renderLegend(){
 
 function getDay(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 
+const YEAR_START=new Date(2026,7,31);
+const YEAR_END=new Date(2027,5,25);
+
 function calcStats(){
-  const today=new Date();
+  const realToday=new Date();
+  // Item #21: when real "today" is outside the academic year, anchor
+  // Days Remaining / Next Holiday to the year start instead of real today,
+  // so pre-year-start visits don't show misleading results.
+  const today=realToday<YEAR_START?YEAR_START:realToday;
   let total=0,remaining=0,nextHol=null;
   MONTHS.forEach(({year,month})=>{
     const days=new Date(year,month+1,0).getDate();
@@ -458,12 +475,12 @@ function calcStats(){
     }
   });
   document.getElementById('totalDays').textContent=total;
-  const t=today;
+  const t=realToday;
   let term='—';
-  if(t>=new Date(2026,7,31)&&t<=new Date(2026,11,18))term='Term 1';
-  else if(t>=new Date(2027,0,4)&&t<=new Date(2027,5,25))term='Term 2';
-  else if(t<new Date(2026,7,31))term='Starts Aug 2026';
-  else if(t>new Date(2027,5,25))term='Year Complete';
+  if(t>=YEAR_START&&t<=new Date(2026,11,18))term='Term 1';
+  else if(t>=new Date(2027,0,4)&&t<=YEAR_END)term='Term 2';
+  else if(t<YEAR_START)term='Starts Aug 2026';
+  else if(t>YEAR_END)term='Year Complete';
   else term='School Break';
   document.getElementById('currentTerm').textContent=term;
   document.getElementById('daysRemaining').textContent=remaining;

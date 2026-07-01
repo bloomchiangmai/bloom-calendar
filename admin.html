@@ -284,14 +284,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* MOBILE NAV */
 .mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:6px 0 env(safe-area-inset-bottom,6px);z-index:100;}
 .mobile-nav-inner{display:flex;justify-content:space-around;}
-.mobile-nav-btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 12px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:color 0.2s;position:relative;}
+.mobile-nav-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 12px;min-width:64px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:color 0.2s;position:relative;}
+.mobile-nav-icon{font-size:20px;line-height:1;}
 .mobile-nav-btn.active{color:var(--purple);}
 .mob-badge{position:absolute;top:2px;right:8px;background:var(--red);color:white;font-size:9px;font-weight:700;width:14px;height:14px;border-radius:50%;display:none;align-items:center;justify-content:center;}
 .mob-badge.show{display:flex;}
 
 @media(max-width:768px){.mini-cal-grid{grid-template-columns:repeat(2,1fr);}.term-summary{grid-template-columns:1fr 1fr;}.day-type-grid{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:600px){.mobile-nav{display:block;}.tabs{display:none;}.ve-cal-grid{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:768px){.mini-cal-grid{grid-template-columns:repeat(2,1fr);}.term-summary{grid-template-columns:1fr 1fr;}.day-type-grid{grid-template-columns:repeat(2,1fr);}.mobile-nav{display:block;}.tabs{display:none;}.ve-cal-grid{grid-template-columns:repeat(2,1fr);}.header{padding:0 1rem;}.tab-content{padding:1rem 1rem 80px;}.attention-strip{padding:10px 1rem;}}
+@media(max-width:600px){.mobile-nav{display:block;}.tabs{display:none;}.ve-cal-grid{grid-template-columns:repeat(2,1fr);}.cal-controls{display:none;}}
+@media(max-width:768px){.mini-cal-grid{grid-template-columns:repeat(2,1fr);}.term-summary{grid-template-columns:1fr 1fr;}.day-type-grid{grid-template-columns:repeat(2,1fr);}.mobile-nav{display:block;}.tabs{display:none;}.ve-cal-grid{grid-template-columns:repeat(2,1fr);}.header{padding:0 1rem;}.tab-content{padding:1rem 1rem 80px;}.attention-strip{padding:10px 1rem;}.cal-controls{display:none;}}
 @media(min-width:900px){.mini-cal-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
 </head>
@@ -482,10 +483,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="toggle-wrap">
         <div class="toggle-info">
           <div class="toggle-label">Calendar Status</div>
-          <div class="toggle-sub" id="statusSub">Draft — not visible to parents</div>
+          <div class="toggle-sub" id="statusSub">Coming in Phase 3</div>
         </div>
         <label class="toggle">
-          <input type="checkbox" id="toggleLive" onchange="toggleSetting('live')">
+          <input type="checkbox" id="toggleLive" disabled onclick="return false;">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -557,17 +558,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <nav class="mobile-nav">
     <div class="mobile-nav-inner">
       <button class="mobile-nav-btn active" id="mnav-calendar" onclick="switchTab('calendar')">
+        <span class="mobile-nav-icon">📅</span>
         Calendar
       </button>
       <button class="mobile-nav-btn" id="mnav-absences" onclick="switchTab('absences')">
+        <span class="mobile-nav-icon">🙋</span>
         Absences
         <span class="mob-badge" id="mAbsenceBadge"></span>
       </button>
       <button class="mobile-nav-btn" id="mnav-approvals" onclick="switchTab('approvals')">
+        <span class="mobile-nav-icon">✅</span>
         Approvals
         <span class="mob-badge" id="mApprovalBadge"></span>
       </button>
       <button class="mobile-nav-btn" id="mnav-settings" onclick="switchTab('settings')">
+        <span class="mobile-nav-icon">⚙️</span>
         Settings
       </button>
     </div>
@@ -1162,7 +1167,7 @@ function showApp(){
 function loadSettings(){
   document.getElementById('toggleLive').checked=settings.live;
   document.getElementById('toggleApproval').checked=settings.approval;
-  document.getElementById('statusSub').textContent=settings.live?'Live — visible to parents':'Draft — not visible to parents';
+  document.getElementById('statusSub').textContent='Coming in Phase 3';
   document.getElementById('approvalSub').textContent=settings.approval?'On — staff changes need approval':'Off — staff changes go live instantly';
 }
 
