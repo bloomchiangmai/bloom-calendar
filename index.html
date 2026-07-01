@@ -44,6 +44,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .logo-sub{font-size:10px;color:rgba(255,255,255,0.65);letter-spacing:0.08em;text-transform:uppercase;margin-top:1px;}
 .header-center{font-family:'Fraunces',serif;font-size:14px;color:rgba(255,255,255,0.85);font-weight:400;position:absolute;left:50%;transform:translateX(-50%);}
 .header-right{display:flex;align-items:center;gap:10px;}
+.auth-nav-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:white;border-radius:20px;padding:6px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;}
+.auth-nav-btn:hover{background:rgba(255,255,255,0.1);}
 .admin-link{display:none;}
 .site-footer{text-align:center;padding:24px 4% 90px;font-size:11px;color:#b5b0a8;line-height:1.6;}
 .site-footer .staff-access-link{color:#b5b0a8;text-decoration:none;text-transform:uppercase;letter-spacing:0.04em;}
@@ -127,6 +129,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;}
 .popup-overlay.open{display:flex;}
 .popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;}
+.auth-popup{max-width:340px;}
+.auth-fg{margin-bottom:12px;}
+.auth-fg label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;}
+.auth-fg input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-size:16px;font-family:'DM Sans',sans-serif;}
+.auth-submit-btn{width:100%;padding:11px;border:none;border-radius:20px;background:var(--purple);color:white;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;margin-top:4px;}
+.auth-signout-btn{background:none;border:1px solid var(--border);color:var(--text);margin-top:16px;}
+.auth-switch{text-align:center;font-size:13px;color:var(--text-muted);margin-top:14px;}
+.auth-switch a{color:var(--purple);font-weight:600;cursor:pointer;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
 .popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
@@ -199,7 +209,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <img src="assets/logo.png" alt="Bloom Chiangmai" class="logo-img">
   </div>
   <div class="header-center">Academic Calendar 2026–2027</div>
-  <div class="header-right"></div>
+  <div class="header-right">
+    <button class="auth-nav-btn" id="authNavBtn" onclick="openAuthModal()">Sign in</button>
+  </div>
 </header>
 
 <div class="scroll-shell" id="scrollShell">
@@ -380,6 +392,77 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="popup-info" id="popupInfo"></div>
   </div>
 </div>
+
+<!-- SIGN IN / CREATE ACCOUNT -->
+<div class="popup-overlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
+  <div class="popup auth-popup">
+    <button class="popup-close" onclick="closeAuthModal()">✕</button>
+    <div class="popup-date" id="authHead">Sign in</div>
+    <form id="authForm" onsubmit="doAuth();return false;" autocomplete="on">
+      <div class="auth-fg auth-signup-only" style="display:none"><label>First name</label><input type="text" id="authFirst" placeholder="First name" autocomplete="given-name"></div>
+      <div class="auth-fg auth-signup-only" style="display:none"><label>Last name</label><input type="text" id="authLast" placeholder="Last name" autocomplete="family-name"></div>
+      <div class="auth-fg"><label>Email address</label><input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email"></div>
+      <div class="auth-fg"><label>Password</label><input type="password" id="authPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="auth-signin-only" style="text-align:right;margin-top:-6px;margin-bottom:10px;"><a onclick="forgotPassword()" style="font-size:12px;color:var(--purple);cursor:pointer;font-weight:600;">Forgot password?</a></div>
+      <button type="submit" class="auth-submit-btn" id="authSubmitBtn">Sign in</button>
+    </form>
+    <div class="auth-switch" id="authSwitch">New here? <a onclick="toggleAuthMode()">Create an account</a></div>
+    <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">Same account as The Bloombrary</div>
+  </div>
+</div>
+
+<!-- MY ACCOUNT -->
+<div class="popup-overlay" id="accountOverlay" onclick="if(event.target===this)closeAccountModal()">
+  <div class="popup auth-popup">
+    <button class="popup-close" onclick="closeAccountModal()">✕</button>
+    <div class="popup-date">My Account</div>
+    <div class="auth-fg"><label>Email</label><div id="accountEmail" style="font-size:14px;padding:8px 0;">—</div></div>
+    <button class="auth-submit-btn auth-signout-btn" onclick="doSignOut()">Sign out</button>
+  </div>
+</div>
+
+<script>
+window._bloomAuthMode='signin';
+function openAuthModal(){document.getElementById('authOverlay').classList.add('open');}
+function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');}
+function openAccountModal(){document.getElementById('accountOverlay').classList.add('open');}
+function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');}
+
+function toggleAuthMode(){
+  window._bloomAuthMode=window._bloomAuthMode==='signin'?'signup':'signin';
+  const isSignUp=window._bloomAuthMode==='signup';
+  document.getElementById('authHead').textContent=isSignUp?'Create account':'Sign in';
+  document.getElementById('authSubmitBtn').textContent=isSignUp?'Create account':'Sign in';
+  document.getElementById('authSwitch').innerHTML=isSignUp?'Already have an account? <a onclick="toggleAuthMode()">Sign in</a>':'New here? <a onclick="toggleAuthMode()">Create an account</a>';
+  document.querySelectorAll('.auth-signup-only').forEach(el=>el.style.display=isSignUp?'block':'none');
+  const fp=document.querySelector('.auth-signin-only');if(fp)fp.style.display=isSignUp?'none':'block';
+}
+
+async function doAuth(){
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  if(!email||!pass)return;
+  const isSignUp=window._bloomAuthMode==='signup';
+  const {data,error}=isSignUp
+    ?await _supabase.auth.signUp({email,password:pass})
+    :await _supabase.auth.signInWithPassword({email,password:pass});
+  if(error||!data?.session){alert(error?.message||'Invalid email or password');return;}
+  closeAuthModal();
+  document.getElementById('authForm').reset();
+}
+
+async function forgotPassword(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email){alert('Enter your email first, then tap Forgot password.');return;}
+  const {error}=await _supabase.auth.resetPasswordForEmail(email);
+  if(error)alert(error.message);else alert('Password reset email sent — check your inbox.');
+}
+
+async function doSignOut(){
+  await _supabase.auth.signOut();
+  closeAccountModal();
+}
+</script>
 
 <script>
 const MONTHS=[{year:2026,month:7},{year:2026,month:8},{year:2026,month:9},{year:2026,month:10},{year:2026,month:11},{year:2027,month:0},{year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4},{year:2027,month:5}];
@@ -704,7 +787,42 @@ window.addEventListener('resize',handleResize);
 // ── SUPABASE INIT ─────────────────────────────────────────────
 const SUPABASE_URL='https://ndlcfgkhxjoancdvmgmr.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
-const _supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// Shared cross-subdomain session storage for Bloom Space Hub (Calendar + Bloombrary).
+// Same cookie key/domain scheme as Bloombrary, so signing in on either tool is
+// recognized on the other without asking again.
+const bloomHubCookieStorage = {
+  getItem(key){
+    const m = document.cookie.match('(^|; )' + key.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&') + '=([^;]*)');
+    return m ? decodeURIComponent(m[2]) : null;
+  },
+  setItem(key, value){
+    let cookie = key + '=' + encodeURIComponent(value) + '; Max-Age=' + (60*60*24*30) + '; Path=/; SameSite=Lax; Secure';
+    if(location.hostname.endsWith('learn2bloom.org')) cookie += '; Domain=.learn2bloom.org';
+    document.cookie = cookie;
+  },
+  removeItem(key){
+    let cookie = key + '=; Max-Age=0; Path=/; SameSite=Lax; Secure';
+    if(location.hostname.endsWith('learn2bloom.org')) cookie += '; Domain=.learn2bloom.org';
+    document.cookie = cookie;
+  }
+};
+
+const _supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
+  auth:{storage:bloomHubCookieStorage,storageKey:'bloom-hub-auth',persistSession:true,autoRefreshToken:true}
+});
+
+_supabase.auth.onAuthStateChange((event,session)=>{
+  const btn=document.getElementById('authNavBtn');
+  if(session&&session.user){
+    btn.textContent=(session.user.email||'Account').split('@')[0];
+    btn.onclick=openAccountModal;
+    document.getElementById('accountEmail').textContent=session.user.email||'—';
+  }else{
+    btn.textContent='Sign in';
+    btn.onclick=openAuthModal;
+  }
+});
 let _locationId=null;
 
 async function loadFromSupabase(){
