@@ -155,6 +155,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .notify-status-badge.new{background:#fde8e8;color:#c0392b;}
 .notify-status-badge.acknowledged{background:#e3f6e8;color:#1e8449;}
 .notify-history-meta{color:var(--text-muted);font-size:12px;margin-top:3px;}
+.date-picker-weekdays{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;color:var(--text-muted);font-weight:700;margin-bottom:4px;}
+.date-picker-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.date-picker-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px;cursor:pointer;color:var(--text);}
+.date-picker-day:hover{background:var(--purple-light);}
+.date-picker-day.empty{cursor:default;}
+.date-picker-day.today{color:var(--purple);font-weight:700;}
+.date-picker-day.selected{background:var(--purple);color:white;font-weight:700;}
+.date-picker-day.disabled{color:#ccc;cursor:not-allowed;}
 .notify-history-delete{background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;}
 .notify-history-delete:hover{color:#dc2626;}
 .bloom-toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--purple);color:white;padding:12px 20px;border-radius:24px;font-size:14px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,0.2);z-index:400;opacity:0;pointer-events:none;transition:opacity 0.25s ease,transform 0.25s ease;max-width:85%;text-align:center;}
@@ -523,12 +531,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="auth-fg" id="notifyOtherFg" style="display:none"><label>Please specify</label><input type="text" id="notifyOtherText" placeholder="Reason"></div>
     <div style="display:flex;gap:10px;">
-      <div class="auth-fg" style="flex:1;"><label>First day away</label><input type="date" id="notifyDateStart"></div>
-      <div class="auth-fg" style="flex:1;"><label>Last day (optional)</label><input type="date" id="notifyDateEnd"></div>
+      <div class="auth-fg" style="flex:1;"><label>First day away</label><input type="text" id="notifyDateStart" placeholder="Select date" readonly onclick="openDatePicker('start')"></div>
+      <div class="auth-fg" style="flex:1;"><label>Last day (optional)</label><input type="text" id="notifyDateEnd" placeholder="Select date" readonly onclick="openDatePicker('end')"></div>
     </div>
     <div class="auth-fg"><label>Note (optional)</label><input type="text" id="notifyNote" placeholder="Anything else the school should know"></div>
     <button class="auth-submit-btn" onclick="submitNotify()">Send to school</button>
     </div>
+  </div>
+</div>
+
+<!-- CUSTOM DATE PICKER (replaces native <input type=date>, which follows OS dark mode) -->
+<div class="popup-overlay" id="datePickerOverlay" onclick="if(event.target===this)closeDatePicker()">
+  <div class="popup auth-popup" style="max-width:320px;">
+    <button class="popup-close" onclick="closeDatePicker()">✕</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <button type="button" onclick="datePickerChangeMonth(-1)" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;color:var(--purple);">‹</button>
+      <div id="datePickerTitle" style="font-family:'Fraunces',serif;font-size:16px;color:var(--purple);font-weight:600;"></div>
+      <button type="button" onclick="datePickerChangeMonth(1)" style="background:none;border:1px solid var(--border);border-radius:50%;width:28px;height:28px;cursor:pointer;color:var(--purple);">›</button>
+    </div>
+    <div class="date-picker-weekdays">
+      <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+    </div>
+    <div class="date-picker-days" id="datePickerDays"></div>
   </div>
 </div>
 
@@ -578,6 +602,65 @@ function closeAccountModal(){document.getElementById('accountOverlay').classList
 function openDeleteAccountModal(){document.getElementById('deleteConfirmEmail').value='';closeAccountModal();document.getElementById('deleteAccountOverlay').classList.add('open');}
 function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');resetViewportPan();}
 
+window._datePicker={target:null,viewYear:null,viewMonth:null};
+const DP_MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function openDatePicker(target){
+  window._datePicker.target=target;
+  const existing=target==='start'?window._notifyDateStart:window._notifyDateEnd;
+  const base=existing?new Date(existing+'T00:00:00'):new Date();
+  window._datePicker.viewYear=base.getFullYear();
+  window._datePicker.viewMonth=base.getMonth();
+  renderDatePicker();
+  document.getElementById('datePickerOverlay').classList.add('open');
+}
+function closeDatePicker(){
+  document.getElementById('datePickerOverlay').classList.remove('open');
+  resetViewportPan();
+}
+function datePickerChangeMonth(delta){
+  let m=window._datePicker.viewMonth+delta;
+  let y=window._datePicker.viewYear;
+  if(m<0){m=11;y--;} else if(m>11){m=0;y++;}
+  window._datePicker.viewMonth=m;
+  window._datePicker.viewYear=y;
+  renderDatePicker();
+}
+function renderDatePicker(){
+  const y=window._datePicker.viewYear,m=window._datePicker.viewMonth;
+  document.getElementById('datePickerTitle').textContent=`${DP_MONTH_NAMES[m]} ${y}`;
+  const fd=new Date(y,m,1).getDay();
+  const offset=fd===0?6:fd-1;
+  const dim=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const target=window._datePicker.target;
+  const selectedStr=target==='start'?window._notifyDateStart:window._notifyDateEnd;
+  let html='';
+  for(let i=0;i<offset;i++)html+=`<div class="date-picker-day empty"></div>`;
+  for(let d=1;d<=dim;d++){
+    const dateObj=new Date(y,m,d);
+    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=dateObj.toDateString()===today.toDateString();
+    const isSelected=iso===selectedStr;
+    let cls='date-picker-day';
+    if(isSelected)cls+=' selected';else if(isToday)cls+=' today';
+    html+=`<div class="${cls}" onclick="selectDatePickerDay('${iso}')">${d}</div>`;
+  }
+  document.getElementById('datePickerDays').innerHTML=html;
+}
+function selectDatePickerDay(iso){
+  const target=window._datePicker.target;
+  const display=new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  if(target==='start'){
+    window._notifyDateStart=iso;
+    document.getElementById('notifyDateStart').value=display;
+  }else{
+    window._notifyDateEnd=iso;
+    document.getElementById('notifyDateEnd').value=display;
+  }
+  closeDatePicker();
+}
+
 window._notifyReason=null;
 function selectNotifyReason(val){
   window._notifyReason=val;
@@ -592,6 +675,8 @@ async function openNotifyModal(){
   document.getElementById('notifyOtherText').value='';
   document.getElementById('notifyDateStart').value='';
   document.getElementById('notifyDateEnd').value='';
+  window._notifyDateStart=null;
+  window._notifyDateEnd=null;
   document.getElementById('notifyNote').value='';
   window._notifyReason=null;
   document.querySelectorAll('.notify-chip').forEach(c=>c.classList.remove('selected'));
@@ -640,8 +725,8 @@ async function submitNotify(){
   const {data:{session}}=await _supabase.auth.getSession();
   if(!session){closeNotifyModal();openAuthModal();return;}
   const learnerName=document.getElementById('notifyChildName').value.trim();
-  const dateStart=document.getElementById('notifyDateStart').value;
-  const dateEnd=document.getElementById('notifyDateEnd').value||null;
+  const dateStart=window._notifyDateStart;
+  const dateEnd=window._notifyDateEnd||null;
   const note=document.getElementById('notifyNote').value.trim()||null;
   const reason=window._notifyReason;
   if(!learnerName){showToast('Please enter your child\'s name.','error');return;}
