@@ -130,7 +130,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* POPUP */
 .popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;align-items:center;justify-content:center;}
 .popup-overlay.open{display:flex;}
-.popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.popup{background:white;border-radius:16px;padding:20px;width:90%;max-width:320px;position:relative;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;}
+.popup-body{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;}
 .auth-popup{max-width:340px;}
 .auth-fg{margin-bottom:12px;}
 .auth-fg label{display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;}
@@ -159,7 +160,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(min-width:769px){.bloom-toast{bottom:24px;}}
 .notify-pending-dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#dc2626;border:1.5px solid white;}
 #navNotify .notify-pending-dot{top:4px;right:14px;}
-.popup-close{position:sticky;top:0;margin:0 0 12px auto;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);z-index:5;flex-shrink:0;}
+.popup-close{position:static;margin:0 0 8px auto;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);flex-shrink:0;}
 .popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
 .popup-info{font-size:14px;color:var(--text-muted);}
@@ -429,9 +430,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
   <div class="popup">
     <button class="popup-close" onclick="closePopup()">✕</button>
+    <div class="popup-body">
     <div class="popup-date" id="popupDate"></div>
     <div class="popup-type-badge" id="popupBadge"></div>
     <div class="popup-info" id="popupInfo"></div>
+    </div>
   </div>
 </div>
 
@@ -439,6 +442,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="popup-overlay" id="authOverlay" onclick="if(event.target===this)closeAuthModal()">
   <div class="popup auth-popup">
     <button class="popup-close" onclick="closeAuthModal()">✕</button>
+    <div class="popup-body">
     <div class="popup-date" id="authHead">Sign in</div>
     <form id="authForm" onsubmit="doAuth();return false;" autocomplete="on">
       <div class="auth-fg auth-signup-only" style="display:none"><label>First name</label><input type="text" id="authFirst" placeholder="First name" autocomplete="given-name"></div>
@@ -450,19 +454,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </form>
     <div class="auth-switch" id="authSwitch">New here? <a onclick="toggleAuthMode()">Create an account</a></div>
     <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">Same account as The Bloombrary</div>
+    </div>
   </div>
 </div>
 
 <!-- MY ACCOUNT -->
 <div class="popup-overlay" id="accountOverlay" onclick="if(event.target===this)closeAccountModal()">
   <div class="popup auth-popup account-popup">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;">
       <div class="popup-date" style="margin:0;">My Account</div>
       <div style="display:flex;align-items:center;gap:12px;">
         <a onclick="openDeleteAccountModal()" style="font-size:11px;color:#aaa;cursor:pointer;text-decoration:underline;">Delete account</a>
-        <button class="popup-close" style="position:static;" onclick="closeAccountModal()">✕</button>
+        <button class="popup-close" style="margin:0;" onclick="closeAccountModal()">✕</button>
       </div>
     </div>
+    <div class="popup-body">
     <div class="auth-section-title">Profile</div>
     <div class="auth-fg"><label>Email</label><div id="accountEmail" style="font-size:14px;padding:8px 0;">—</div></div>
     <div class="auth-fg"><label>Display name</label><input type="text" id="accountName" placeholder="Your name"></div>
@@ -472,6 +478,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="auth-fg"><label>Confirm password</label><input type="password" id="accountConfirmPass" placeholder="Confirm password"></div>
     <button class="auth-submit-btn" onclick="saveAccountPassword()">Update password</button>
     <button class="auth-submit-btn auth-signout-btn" style="margin-top:16px;" onclick="doSignOut()">Sign out</button>
+    </div>
   </div>
 </div>
 
@@ -479,10 +486,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <div class="popup-overlay" id="deleteAccountOverlay" onclick="if(event.target===this)closeDeleteAccountModal()">
   <div class="popup auth-popup">
     <button class="popup-close" onclick="closeDeleteAccountModal()">✕</button>
+    <div class="popup-body">
     <div class="popup-date">Delete account</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">⚠️ This permanently deletes your account across the entire Bloom Chiangmai platform — including Bloombrary and any other Bloom tools tied to this login. This cannot be undone. Type your email below to confirm.</div>
     <div class="auth-fg"><input type="text" id="deleteConfirmEmail" placeholder="you@email.com"></div>
     <button class="auth-submit-btn" style="background:var(--holiday-color, #dc2626);" onclick="confirmDeleteAccount()">Permanently delete account</button>
+    </div>
   </div>
 </div>
 
@@ -492,6 +501,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="popup-close" onclick="closeNotifyModal()">✕</button>
     <div class="popup-date">Notify the school</div>
     <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">Let the school know your child will be away.</div>
+    <div class="popup-body">
     <div id="notifyHistorySection" style="display:none;">
       <div class="auth-section-title">My notices</div>
       <div id="notifyHistoryList" style="margin-bottom:16px;"></div>
@@ -515,6 +525,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="auth-fg"><label>Note (optional)</label><input type="text" id="notifyNote" placeholder="Anything else the school should know"></div>
     <button class="auth-submit-btn" onclick="submitNotify()">Send to school</button>
+    </div>
   </div>
 </div>
 
