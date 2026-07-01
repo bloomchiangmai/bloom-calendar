@@ -541,7 +541,7 @@ async function openNotifyModal(){
   document.getElementById('notifyOtherFg').style.display='none';
   document.getElementById('notifyOverlay').classList.add('open');
   loadNotifyHistory(session.user.email);
-  checkNotifyBadge(session.user.email);
+  markSeenIfAcknowledged(session.user.email);
 }
 
 async function loadNotifyHistory(email){
@@ -592,7 +592,6 @@ async function submitNotify(){
   });
   if(error){alert('Could not send: '+(error.message||'error'));return;}
   closeNotifyModal();
-  setNotifyBadge(true);
   alert('Sent to the school. Thank you.');
 }
 
@@ -1054,8 +1053,21 @@ _supabase.auth.onAuthStateChange((event,session)=>{
 async function checkNotifyBadge(email){
   const {count,error}=await _supabase.from('bloom_absence_reports')
     .select('id',{count:'exact',head:true})
-    .eq('submitted_by_email',email).eq('status','new');
-  setNotifyBadge(!error&&count>0);
+    .eq('submitted_by_email',email).eq('status','acknowledged');
+  if(error){setNotifyBadge(false);return;}
+  const seenKey='bloom_notify_seen_ack_'+email;
+  const seenCount=parseInt(localStorage.getItem(seenKey)||'0',10);
+  setNotifyBadge((count||0)>seenCount);
+}
+function markNotifyAcknowledgedSeen(email,count){
+  localStorage.setItem('bloom_notify_seen_ack_'+email,String(count||0));
+  setNotifyBadge(false);
+}
+async function markSeenIfAcknowledged(email){
+  const {count,error}=await _supabase.from('bloom_absence_reports')
+    .select('id',{count:'exact',head:true})
+    .eq('submitted_by_email',email).eq('status','acknowledged');
+  if(!error)markNotifyAcknowledgedSeen(email,count);
 }
 function setNotifyBadge(show){
   const d=show?'block':'none';
