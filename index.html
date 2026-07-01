@@ -46,6 +46,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .header-right{display:flex;align-items:center;gap:10px;}
 .auth-nav-btn{background:none;border:1px solid rgba(255,255,255,0.4);color:white;border-radius:20px;padding:6px 16px;font-size:13px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;}
 .auth-nav-btn:hover{background:rgba(255,255,255,0.1);}
+.notify-header-btn{display:none;}
+@media(min-width:769px){.notify-header-btn{display:inline-block;}}
 .admin-link{display:none;}
 .site-footer{text-align:center;padding:24px 4% 90px;font-size:11px;color:#b5b0a8;line-height:1.6;}
 .site-footer .staff-access-link{color:#b5b0a8;text-decoration:none;text-transform:uppercase;letter-spacing:0.04em;}
@@ -139,6 +141,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .auth-switch a{color:var(--purple);font-weight:600;cursor:pointer;}
 .auth-section-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
 .account-popup{max-width:360px;}
+.notify-reason-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.notify-chip{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:white;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;color:var(--text);}
+.notify-chip.selected{background:var(--purple);border-color:var(--purple);color:white;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
 .popup-date{font-family:'Fraunces',serif;font-size:18px;color:var(--purple);margin-bottom:6px;}
 .popup-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:10px;}
@@ -212,6 +217,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
   <div class="header-center">Academic Calendar 2026–2027</div>
   <div class="header-right">
+    <button class="auth-nav-btn notify-header-btn" onclick="openNotifyModal()">Notify</button>
     <button class="auth-nav-btn" id="authNavBtn" onclick="openAuthModal()">Sign in</button>
   </div>
 </header>
@@ -382,6 +388,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
       Key Dates
     </button>
+    <button class="mobile-nav-item" id="navNotify" onclick="openNotifyModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Notify
+    </button>
   </div>
 </nav>
 
@@ -446,6 +456,33 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- NOTIFY (ABSENCE REPORT) -->
+<div class="popup-overlay" id="notifyOverlay" onclick="if(event.target===this)closeNotifyModal()">
+  <div class="popup auth-popup account-popup">
+    <button class="popup-close" onclick="closeNotifyModal()">✕</button>
+    <div class="popup-date">Notify the school</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">Let the school know your child will be away.</div>
+    <div class="auth-fg"><label>Child's name</label><input type="text" id="notifyChildName" placeholder="Child's full name"></div>
+    <div class="auth-fg">
+      <label>Reason</label>
+      <div class="notify-reason-chips" id="notifyReasonChips">
+        <button type="button" class="notify-chip" data-val="sick" onclick="selectNotifyReason('sick')">Sick / Fever</button>
+        <button type="button" class="notify-chip" data-val="appointment" onclick="selectNotifyReason('appointment')">Doctor's appointment</button>
+        <button type="button" class="notify-chip" data-val="travel" onclick="selectNotifyReason('travel')">Family travel</button>
+        <button type="button" class="notify-chip" data-val="emergency" onclick="selectNotifyReason('emergency')">Family emergency</button>
+        <button type="button" class="notify-chip" data-val="other" onclick="selectNotifyReason('other')">Other</button>
+      </div>
+    </div>
+    <div class="auth-fg" id="notifyOtherFg" style="display:none"><label>Please specify</label><input type="text" id="notifyOtherText" placeholder="Reason"></div>
+    <div style="display:flex;gap:10px;">
+      <div class="auth-fg" style="flex:1;"><label>First day away</label><input type="date" id="notifyDateStart"></div>
+      <div class="auth-fg" style="flex:1;"><label>Last day (optional)</label><input type="date" id="notifyDateEnd"></div>
+    </div>
+    <div class="auth-fg"><label>Note (optional)</label><input type="text" id="notifyNote" placeholder="Anything else the school should know"></div>
+    <button class="auth-submit-btn" onclick="submitNotify()">Send to school</button>
+  </div>
+</div>
+
 <script>
 window._bloomAuthMode='signin';
 // iOS Safari sometimes fails to release its visual-viewport pan after a
@@ -468,6 +505,56 @@ function openAccountModal(){document.getElementById('accountOverlay').classList.
 function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');resetViewportPan();}
 function openDeleteAccountModal(){document.getElementById('deleteConfirmEmail').value='';closeAccountModal();document.getElementById('deleteAccountOverlay').classList.add('open');}
 function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');resetViewportPan();}
+
+window._notifyReason=null;
+function selectNotifyReason(val){
+  window._notifyReason=val;
+  document.querySelectorAll('.notify-chip').forEach(c=>c.classList.toggle('selected',c.dataset.val===val));
+  document.getElementById('notifyOtherFg').style.display=val==='other'?'block':'none';
+}
+
+async function openNotifyModal(){
+  const {data:{session}}=await _supabase.auth.getSession();
+  if(!session){openAuthModal();return;}
+  document.getElementById('notifyChildName').value='';
+  document.getElementById('notifyOtherText').value='';
+  document.getElementById('notifyDateStart').value='';
+  document.getElementById('notifyDateEnd').value='';
+  document.getElementById('notifyNote').value='';
+  window._notifyReason=null;
+  document.querySelectorAll('.notify-chip').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('notifyOtherFg').style.display='none';
+  document.getElementById('notifyOverlay').classList.add('open');
+}
+function closeNotifyModal(){document.getElementById('notifyOverlay').classList.remove('open');resetViewportPan();}
+
+async function submitNotify(){
+  const {data:{session}}=await _supabase.auth.getSession();
+  if(!session){closeNotifyModal();openAuthModal();return;}
+  const learnerName=document.getElementById('notifyChildName').value.trim();
+  const dateStart=document.getElementById('notifyDateStart').value;
+  const dateEnd=document.getElementById('notifyDateEnd').value||null;
+  const note=document.getElementById('notifyNote').value.trim()||null;
+  const reason=window._notifyReason;
+  if(!learnerName){alert('Please enter your child\'s name.');return;}
+  if(!reason){alert('Please select a reason.');return;}
+  if(!dateStart){alert('Please select the first day away.');return;}
+  const otherText=document.getElementById('notifyOtherText').value.trim();
+  if(reason==='other'&&!otherText){alert('Please specify the reason.');return;}
+  const {error}=await _supabase.from('bloom_absence_reports').insert({
+    learner_name:learnerName,
+    date_start:dateStart,
+    date_end:dateEnd,
+    reason_type:reason,
+    reason_note:reason==='other'?[otherText,note].filter(Boolean).join(' — '):note,
+    submitted_by_email:session.user.email,
+    submitted_by_name:session.user.user_metadata?.display_name||null,
+    status:'new'
+  });
+  if(error){alert('Could not send: '+(error.message||'error'));return;}
+  closeNotifyModal();
+  alert('Sent to the school. Thank you.');
+}
 
 function toggleAuthMode(){
   window._bloomAuthMode=window._bloomAuthMode==='signin'?'signup':'signin';

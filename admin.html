@@ -784,7 +784,7 @@ Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).
 let overrides = JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
 let pendingChanges = JSON.parse(localStorage.getItem('bloom_cal_pending')||'[]');
 let auditLog = JSON.parse(localStorage.getItem('bloom_cal_audit')||'[]');
-let absences = JSON.parse(localStorage.getItem('bloom_cal_absences')||'[]');
+let absences = [];
 let settings = JSON.parse(localStorage.getItem('bloom_cal_settings')||'{"live":false,"approval":true}');
 let veType=null, veSelected=new Set(), crDateKey=null, veMode='assign';
 
@@ -802,13 +802,7 @@ function setVEMode(mode){
   renderVE();
 }
 
-if(absences.length===0){
-  absences=[
-    {id:1,child:'Mia Chen',parent:'Sarah Chen',date:'2026-09-15',reason:'Fever and cold, will rest at home.',type:'sick',status:'new',submitted:'Today 08:12'},
-    {id:2,child:'Leo Park',parent:'James Park',date:'2026-09-14',reason:'Family travelling to Bangkok, back Thursday.',type:'travel',status:'acknowledged',submitted:'Yesterday 19:45'},
-  ];
-  localStorage.setItem('bloom_cal_absences',JSON.stringify(absences));
-}
+// Mock absence data removed — now pulling real submissions from Supabase (bloom_absence_reports)
 
 function getDayData(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 function isPending(y,m,d){return pendingChanges.some(p=>p.dateKey===dk(y,m,d)||(p.dates&&p.dates.includes(dk(y,m,d))));}
@@ -1606,29 +1600,46 @@ function submitMultiSelect(){
 }
 
 // ── ABSENCES ─────────────────────────────────────────────────────
-function renderAbsences(){
+async function renderAbsences(){
   const list=document.getElementById('absenceList');
+  list.innerHTML=`<div class="empty-state"><div class="empty-icon">🙋</div><div class="empty-title">Loading…</div></div>`;
+  const {data,error}=await _sb.from('bloom_absence_reports').select('*').order('created_at',{ascending:false});
+  if(error){list.innerHTML=`<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Could not load absences</div></div>`;return;}
+  absences=data||[];
+  updateAttention();
   if(!absences.length){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🙋</div><div class="empty-title">No absences yet</div></div>`;return;}
-  list.innerHTML=absences.map(a=>`
+  const reasonLabels={sick:'Sick / Fever',appointment:"Doctor's appointment",travel:'Family travel',emergency:'Family emergency',other:'Other'};
+  list.innerHTML=absences.map(a=>{
+    const dateStr=a.date_end&&a.date_end!==a.date_start
+      ?`${formatDate(a.date_start)} → ${formatDate(a.date_end)}`
+      :formatDate(a.date_start);
+    const who=a.submitted_by_name||a.submitted_by_email;
+    const reasonLine=[reasonLabels[a.reason_type]||a.reason_type,a.reason_note].filter(Boolean).join(' — ');
+    return `
     <div class="absence-card ${a.status}">
-      <div class="absence-avatar">${a.child[0]}</div>
+      <div class="absence-avatar">${(a.learner_name||'?')[0]}</div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span class="absence-name">${a.child}</span>
+          <span class="absence-name">${a.learner_name}</span>
           <span class="status-badge ${a.status==='new'?'new':a.status}">${a.status==='new'?'New':'Noted'}</span>
         </div>
-        <div class="absence-date">📅 ${formatDate(a.date)} · ${a.parent}</div>
-        <div class="absence-reason">${a.reason}</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${a.submitted}</div>
-        ${a.status==='new'?`<div style="margin-top:8px;"><button class="btn btn-success btn-sm" onclick="acknowledgeAbsence(${a.id})">✓ Acknowledge</button></div>`:''}
+        <div class="absence-date">📅 ${dateStr} · ${who}</div>
+        <div class="absence-reason">${reasonLine}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${new Date(a.created_at).toLocaleString()}</div>
+        ${a.status==='new'?`<div style="margin-top:8px;"><button class="btn btn-success btn-sm" onclick="acknowledgeAbsence('${a.id}')">✓ Acknowledge</button></div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-function acknowledgeAbsence(id){
+async function acknowledgeAbsence(id){
   const a=absences.find(x=>x.id===id);
-  if(a){a.status='acknowledged';localStorage.setItem('bloom_cal_absences',JSON.stringify(absences));
-    addAuditEntry(`Absence acknowledged: ${a.child} on ${a.date}`,'Admin');renderAbsences();updateAttention();}
+  if(!a)return;
+  const {error}=await _sb.from('bloom_absence_reports').update({status:'acknowledged'}).eq('id',id);
+  if(error){alert('Could not update: '+(error.message||'error'));return;}
+  a.status='acknowledged';
+  addAuditEntry(`Absence acknowledged: ${a.learner_name} on ${a.date_start}`,'Admin');
+  renderAbsences();updateAttention();
 }
 
 // ── APPROVALS ────────────────────────────────────────────────────
