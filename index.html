@@ -151,6 +151,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .notify-status-badge.new{background:#fde8e8;color:#c0392b;}
 .notify-status-badge.acknowledged{background:#e3f6e8;color:#1e8449;}
 .notify-history-meta{color:var(--text-muted);font-size:12px;margin-top:3px;}
+.notify-history-delete{background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 4px;line-height:1;}
+.notify-history-delete:hover{color:#dc2626;}
 .notify-pending-dot{position:absolute;top:2px;right:2px;width:9px;height:9px;border-radius:50%;background:#dc2626;border:1.5px solid white;}
 #navNotify .notify-pending-dot{top:4px;right:14px;}
 .popup-close{position:absolute;top:12px;right:12px;background:var(--border);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);}
@@ -559,11 +561,22 @@ async function loadNotifyHistory(email){
     return `<div class="notify-history-card">
       <div class="notify-history-top">
         <span class="notify-history-name">${a.learner_name}</span>
-        <span class="notify-status-badge ${a.status}">${a.status==='new'?'Received':'Acknowledged'}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="notify-status-badge ${a.status}">${a.status==='new'?'Received':'Acknowledged'}</span>
+          ${a.status==='acknowledged'?`<button type="button" class="notify-history-delete" onclick="deleteNotifyHistoryItem('${a.id}','${email.replace(/'/g,"\\'")}')" title="Delete">✕</button>`:''}
+        </span>
       </div>
       <div class="notify-history-meta">${dateStr} · ${reasonLabels[a.reason_type]||a.reason_type}</div>
     </div>`;
   }).join('');
+}
+
+async function deleteNotifyHistoryItem(id,email){
+  if(!confirm('Delete this notice? This cannot be undone.'))return;
+  const {error}=await _supabase.from('bloom_absence_reports').delete().eq('id',id);
+  if(error){alert('Could not delete: '+(error.message||'error'));return;}
+  loadNotifyHistory(email);
+  checkNotifyBadge(email);
 }
 function closeNotifyModal(){document.getElementById('notifyOverlay').classList.remove('open');resetViewportPan();}
 
