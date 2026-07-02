@@ -1778,7 +1778,8 @@ async function syncToCloud(){
   const btn=document.getElementById('syncCloudBtn');
   const status=document.getElementById('syncCloudStatus');
   if(btn.dataset.syncing==='1')return;
-  const confirmMsg=`This will save your current academic year (Term 1: ${obData.t1Start} to ${obData.t1End}, Term 2: ${obData.t2Start} to ${obData.t2End}) and all ${Object.keys(overrides).length} calendar entries to the cloud database. Continue?`;
+  const allDatesPreview=new Set([...Object.keys(BASE),...Object.keys(overrides)]);
+  const confirmMsg=`This will save your current academic year (Term 1: ${obData.t1Start} to ${obData.t1End}, Term 2: ${obData.t2Start} to ${obData.t2End}) and all ${allDatesPreview.size} calendar entries to the cloud database. Continue?`;
   if(!confirm(confirmMsg))return;
   btn.dataset.syncing='1';
   status.textContent='Syncing…';
@@ -1793,7 +1794,12 @@ async function syncToCloud(){
         return;
       }
     }
-    const events=Object.entries(overrides).map(([date,d])=>({date,type:d.type,label:d.label||''}));
+    const allDates=new Set([...Object.keys(BASE),...Object.keys(overrides)]);
+    const events=[...allDates].map(date=>{
+      const d=overrides[date]||BASE[date];
+      return{date,type:d.type,label:d.label||''};
+    });
+    await sbDeleteAllEvents();
     await sbSaveBulk(events);
     localStorage.setItem('bloom_setup_done','true');
     status.textContent=`Synced successfully — ${events.length} calendar entries saved to the cloud.`;
