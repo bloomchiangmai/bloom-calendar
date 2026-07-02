@@ -1162,8 +1162,13 @@ function openPopup(y,m,d){
   }else{
     badgePD.style.display='none';
   }
-  if(tm){badge.textContent=tm.label;badge.style.background=tm.bg;badge.style.color=tm.color;}
-  else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';}
+  if(tm){
+    badge.textContent=tm.label;
+    badge.style.background=tm.bg;
+    badge.style.color=tm.color;
+    badge.style.boxShadow=type==='early'?'inset 0 0 0 1px color-mix(in srgb, var(--pd-color) 55%, transparent)':'none';
+  }
+  else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';badge.style.boxShadow='none';}
   let info='';
   if(type==='school')info='School hours: 08:30 – 15:30';
   else if(data&&data.label)info=data.label;
