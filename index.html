@@ -929,7 +929,8 @@ function renderLegend(){
     }
   });
   used.add('pd'); // always show PD Day in the legend even if no dates currently use it
-  const order=['school','break','pd','holiday','event','early','closure','makeup'];
+  used.add('event'); // always show School Event too, matching the top pill strip
+  const order=['school','break','holiday','pd','event','early','closure','makeup'];
   let html='';
   order.filter(t=>used.has(t)).forEach(t=>{
     const dotStyle=t==='early'
