@@ -1154,14 +1154,7 @@ function openPopup(y,m,d){
   const tm=type?TYPE_META[type]:null;
   const badge=document.getElementById('popupBadge');
   const badgePD=document.getElementById('popupBadgePD');
-  if(type==='early'){
-    badgePD.textContent=TYPE_META.pd.label;
-    badgePD.style.background=TYPE_META.pd.bg;
-    badgePD.style.color=TYPE_META.pd.color;
-    badgePD.style.display='inline-block';
-  }else{
-    badgePD.style.display='none';
-  }
+  badgePD.style.display='none';
   if(tm){
     badge.textContent=tm.label;
     badge.style.background=tm.bg;
