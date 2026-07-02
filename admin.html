@@ -1961,6 +1961,10 @@ async function sbSaveBulk(events){
 async function sbSaveYear(data){
   if(!_locId)return null;
   try{
+    // Deactivate any existing active year(s) for this location first —
+    // without this, every resync creates another is_active:true row and
+    // breaks any query that expects exactly one active year.
+    await _sb.from('bloom_academic_years').update({is_active:false}).eq('location_id',_locId).eq('is_active',true);
     const{data:yr}=await _sb.from('bloom_academic_years').insert({
       location_id:_locId,label:data.label||'2026-2027',
       t1_start:data.t1Start,t1_end:data.t1End,
