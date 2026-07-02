@@ -79,7 +79,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .stat-divider{width:1px;background:var(--border);align-self:stretch;flex-shrink:0;margin-right:24px;}
 
 /* MAIN LAYOUT */
-.main-layout{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:24px 4%;max-width:1400px;margin:0 auto;}
+.main-layout{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:24px 4%;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box;}
 
 /* CALENDAR GRID - fixed 5 col, wraps naturally */
 .calendar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch;}
@@ -231,7 +231,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   .stat-label{font-size:10px;}
 }
 @media(min-width:769px){.mobile-month-view,.mobile-keydate-view{display:none!important;}
-  .header,.stats-bar,.main-legend-strip{max-width:1400px;margin:0 auto;}
+  .header,.stats-bar,.main-legend-strip{max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box;}
 }
 @media(max-width:768px){
   html,body{height:100%;overflow:hidden;}
