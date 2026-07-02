@@ -745,10 +745,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 // ── CONSTANTS ────────────────────────────────────────────────────
 const ADMIN_PW = 'bcmbcm';
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const CALENDAR_MONTHS = [
-  {year:2026,month:7},{year:2026,month:8},{year:2026,month:9},{year:2026,month:10},{year:2026,month:11},
-  {year:2027,month:0},{year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4},{year:2027,month:5}
-];
+let CALENDAR_MONTHS = [];
 const TYPE_COLORS = {
   school:'#7B4FBE',early:'#475569',event:'#1d4ed8',pd:'#0891b2',
   holiday:'#dc2626',break:'#d97706',closure:'#475569',makeup:'#475569'
@@ -760,7 +757,8 @@ const TYPE_BG = {
 const COUNTS_AS_SCHOOL = ['school','event','early','makeup'];
 
 // ── BASE DATA ────────────────────────────────────────────────────
-const BASE = {};
+let BASE = {};
+let YEAR_START,YEAR_END,TERM1_END,TERM2_START;
 function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function sr(sy,sm,sd,ey,em,ed,type,label=''){
   let c=new Date(sy,sm,sd),e=new Date(ey,em,ed);
@@ -768,16 +766,43 @@ function sr(sy,sm,sd,ey,em,ed,type,label=''){
 }
 function sd(y,m,d,type,label=''){BASE[dk(y,m,d)]={type,label};}
 
-sr(2026,7,31,2026,11,18,'school');
-sr(2026,9,26,2026,9,30,'break','School Break');
-sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
-sr(2027,0,4,2027,5,29,'school');
-sr(2027,2,22,2027,3,15,'break','School Break');
-sd(2027,4,20,'holiday','Visakha Bucha Day');
-['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
-Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
-// Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
-Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+// Fallback term dates, used only if the bloom_academic_years fetch hasn't
+// resolved yet or fails. Overwritten by real data once the app loads.
+let TERM_DATES={t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29]};
+
+function parseDateParts(s){
+  const[y,m,d]=s.split('-').map(Number);
+  return[y,m-1,d];
+}
+
+function buildCalendarFromTerms(){
+  BASE={};
+  const{t1Start,t1End,t2Start,t2End}=TERM_DATES;
+  sr(...t1Start,...t1End,'school');
+  sr(2026,9,26,2026,9,30,'break','School Break');
+  sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
+  sr(...t2Start,...t2End,'school');
+  sr(2027,2,22,2027,3,15,'break','School Break');
+  sd(2027,4,20,'holiday','Visakha Bucha Day');
+  ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
+  // Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+
+  YEAR_START=new Date(...t1Start);
+  YEAR_END=new Date(...t2End);
+  TERM1_END=new Date(...t1End);
+  TERM2_START=new Date(...t2Start);
+
+  CALENDAR_MONTHS=[];
+  let cy=YEAR_START.getFullYear(),cm=YEAR_START.getMonth();
+  const ey=YEAR_END.getFullYear(),em=YEAR_END.getMonth();
+  while(cy<ey||(cy===ey&&cm<=em)){
+    CALENDAR_MONTHS.push({year:cy,month:cm});
+    cm++;if(cm>11){cm=0;cy++;}
+  }
+}
+buildCalendarFromTerms();
 
 // ── STATE ────────────────────────────────────────────────────────
 let overrides = JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
@@ -1194,7 +1219,7 @@ function calcDays(){
     for(let d=1;d<=dim;d++){
       const data=getDayData(year,month,d);
       if(!data||!COUNTS_AS_SCHOOL.includes(data.type))continue;
-      const isT1=new Date(year,month,d)>=new Date(2026,7,31)&&new Date(year,month,d)<=new Date(2026,11,18);
+      const isT1=new Date(year,month,d)>=YEAR_START&&new Date(year,month,d)<=TERM1_END;
       if(isT1)t1++;else t2++;
     }
   });
@@ -1717,8 +1742,8 @@ function rejectChange(id){
 // ── TERM BREAKDOWN ───────────────────────────────────────────────
 function openTermBreakdown(term){
   const iT1=term==='term1';
-  const start=iT1?new Date(2026,7,31):new Date(2027,0,4);
-  const end=iT1?new Date(2026,11,18):new Date(2027,5,29);
+  const start=iT1?YEAR_START:TERM2_START;
+  const end=iT1?TERM1_END:YEAR_END;
   const byMonth={};let ts=0,th=0,tp=0,tb=0;
   CALENDAR_MONTHS.forEach(({year,month})=>{
     const ms=new Date(year,month,1),me=new Date(year,month+1,0);
@@ -1916,8 +1941,17 @@ async function sbInit(){
     const{data:loc}=await _sb.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').maybeSingle();
     if(loc)_locId=loc.id;
     if(_locId){
-      const{data:yr}=await _sb.from('bloom_academic_years').select('id').eq('location_id',_locId).eq('is_active',true).maybeSingle();
-      if(yr)_yearId=yr.id;
+      const{data:yr}=await _sb.from('bloom_academic_years').select('*').eq('location_id',_locId).eq('is_active',true).maybeSingle();
+      if(yr){
+        _yearId=yr.id;
+        if(yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
+          TERM_DATES={
+            t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
+            t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end)
+          };
+          buildCalendarFromTerms();
+        }
+      }
       const{data:events}=await _sb.from('bloom_calendar_events').select('*').eq('location_id',_locId);
       overrides={};
       if(events&&events.length>0){

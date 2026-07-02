@@ -1,6 +1,6 @@
 // Bloom Calendar - Supabase Configuration
 const SUPABASE_URL = 'https://ndlcfgkhxjoancdvmgmr.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_EzlLIeKJDqtMs0mKD0gfgA_C86iHZal';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -13,7 +13,7 @@ async function getLocation() {
     .from('bloom_locations')
     .select('*')
     .eq('name', 'Bloom Chiangmai')
-    .single();
+    .maybeSingle();
   if (error) { console.error('Location error:', error); return null; }
   LOCATION_ID = data.id;
   return data;
@@ -25,7 +25,7 @@ async function getActiveYear() {
     .select('*')
     .eq('location_id', LOCATION_ID)
     .eq('is_active', true)
-    .single();
+    .maybeSingle();
   if (error) return null;
   ACADEMIC_YEAR_ID = data?.id;
   return data;
@@ -50,7 +50,7 @@ async function saveCalendarEvent(date, dayType, label = '') {
     .select('id')
     .eq('location_id', LOCATION_ID)
     .eq('date', date)
-    .single();
+    .maybeSingle();
 
   if (existing.data) {
     const { error } = await supabase

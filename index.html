@@ -859,9 +859,10 @@ async function doSignOut(){
 </script>
 
 <script>
-const MONTHS=[{year:2026,month:7},{year:2026,month:8},{year:2026,month:9},{year:2026,month:10},{year:2026,month:11},{year:2027,month:0},{year:2027,month:1},{year:2027,month:2},{year:2027,month:3},{year:2027,month:4},{year:2027,month:5}];
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const BASE={};
+let BASE={};
+let MONTHS=[];
+let YEAR_START,YEAR_END,TERM1_END,TERM2_START;
 
 function sr(sy,sm,sd,ey,em,ed,type,label=''){
   let c=new Date(sy,sm,sd),e=new Date(ey,em,ed);
@@ -870,16 +871,38 @@ function sr(sy,sm,sd,ey,em,ed,type,label=''){
 function sd(y,m,d,type,label=''){BASE[dk(y,m,d)]={type,label};}
 function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 
-sr(2026,7,31,2026,11,18,'school');
-sr(2026,9,26,2026,9,30,'break','School Break');
-sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
-sr(2027,0,4,2027,5,29,'school');
-sr(2027,2,22,2027,3,15,'break','School Break');
-sd(2027,4,20,'holiday','Visakha Bucha Day');
-['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
-Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
-// Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
-Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+// Fallback term dates, used only if the bloom_academic_years fetch hasn't
+// resolved yet or fails. Overwritten by real data in loadFromSupabase().
+let TERM_DATES={t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29]};
+
+function buildCalendarFromTerms(){
+  BASE={};
+  const{t1Start,t1End,t2Start,t2End}=TERM_DATES;
+  sr(...t1Start,...t1End,'school');
+  sr(2026,9,26,2026,9,30,'break','School Break');
+  sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
+  sr(...t2Start,...t2End,'school');
+  sr(2027,2,22,2027,3,15,'break','School Break');
+  sd(2027,4,20,'holiday','Visakha Bucha Day');
+  ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
+  // Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+
+  YEAR_START=new Date(...t1Start);
+  YEAR_END=new Date(...t2End);
+  TERM1_END=new Date(...t1End);
+  TERM2_START=new Date(...t2Start);
+
+  MONTHS=[];
+  let cy=YEAR_START.getFullYear(),cm=YEAR_START.getMonth();
+  const ey=YEAR_END.getFullYear(),em=YEAR_END.getMonth();
+  while(cy<ey||(cy===ey&&cm<=em)){
+    MONTHS.push({year:cy,month:cm});
+    cm++;if(cm>11){cm=0;cy++;}
+  }
+}
+buildCalendarFromTerms();
 
 let overrides=JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
 let currentMobileMonth=0;
@@ -949,9 +972,6 @@ function renderLegend(){
 
 function getDay(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 
-const YEAR_START=new Date(2026,7,31);
-const YEAR_END=new Date(2027,5,29);
-
 function calcStats(){
   const realToday=new Date();
   // Item #21: when real "today" is outside the academic year, anchor
@@ -971,8 +991,8 @@ function calcStats(){
   document.getElementById('totalDays').textContent=total;
   const t=realToday;
   let term='—';
-  if(t>=YEAR_START&&t<=new Date(2026,11,18))term='Term 1';
-  else if(t>=new Date(2027,0,4)&&t<=YEAR_END)term='Term 2';
+  if(t>=YEAR_START&&t<=TERM1_END)term='Term 1';
+  else if(t>=TERM2_START&&t<=YEAR_END)term='Term 2';
   else if(t<YEAR_START)term=YEAR_START.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   else if(t>YEAR_END)term='Year Complete';
   else term='School Break';
@@ -1303,12 +1323,29 @@ function setNotifyBadge(show){
 }
 let _locationId=null;
 
+// Parses a 'YYYY-MM-DD' date string into a [year, month(0-indexed), day] array
+// matching the args sr()/new Date() expect elsewhere in this file.
+function parseDateParts(s){
+  const[y,m,d]=s.split('-').map(Number);
+  return[y,m-1,d];
+}
+
 async function loadFromSupabase(){
   try{
     // Get location
     const{data:loc}=await _supabase.from('bloom_locations').select('id').eq('name','Bloom Chiangmai').maybeSingle();
     if(!loc)return;
     _locationId=loc.id;
+    // Get active academic year term dates and rebuild the calendar structure
+    // (MONTHS/YEAR_START/YEAR_END/BASE) from them instead of the hardcoded fallback.
+    const{data:yr}=await _supabase.from('bloom_academic_years').select('*').eq('location_id',_locationId).eq('is_active',true).maybeSingle();
+    if(yr&&yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
+      TERM_DATES={
+        t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
+        t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end)
+      };
+      buildCalendarFromTerms();
+    }
     // Load events
     const{data:events}=await _supabase.from('bloom_calendar_events').select('*').eq('location_id',_locationId);
     if(events&&events.length>0){
