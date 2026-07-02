@@ -302,7 +302,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
         <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 29 Jun 2027</span></div>
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 14:30</span></div>
+        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 13:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -316,7 +316,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
       <div class="sidebar-body">
-        <div class="hours-row"><span class="hours-day">Mon – Fri</span><span class="hours-time">08:30 – 15:30</span></div>
+        <div class="hours-row"><span class="hours-day">Mon, Tue, Thu, Fri</span><span class="hours-time">08:30 – 15:30</span></div>
+        <div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time">08:30 – 13:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -371,7 +372,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
         <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 29 Jun 2027</span></div>
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 14:30</span></div>
+        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 13:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -384,7 +385,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
-      <div class="sidebar-body"><div class="hours-row"><span class="hours-day">Mon – Fri</span><span class="hours-time">08:30 – 15:30</span></div></div>
+      <div class="sidebar-body"><div class="hours-row"><span class="hours-day">Mon, Tue, Thu, Fri</span><span class="hours-time">08:30 – 15:30</span></div><div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time">08:30 – 13:30</span></div></div>
     </div>
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">Legend</div></div>
@@ -878,7 +879,7 @@ sd(2027,4,20,'holiday','Visakha Bucha Day');
 ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
 Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
 // Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
-Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 14:30'};}});
+Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
 
 let overrides=JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
 let currentMobileMonth=0;
