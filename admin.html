@@ -1877,6 +1877,15 @@ const _sb=window.supabase.createClient(SB_URL,SB_KEY);
 let _locId=null,_yearId=null;
 let unsyncedQueue=JSON.parse(localStorage.getItem('bloom_cal_unsynced')||'[]');
 
+// Realtime: new absence reports show up in the badge instantly instead of
+// only on page load. Fallback: renderAbsences() still runs on login/tab
+// switch, so a dropped socket just means the badge waits for next visit.
+_sb.channel('admin-absences')
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'bloom_absence_reports'},()=>{
+    renderAbsences();
+  })
+  .subscribe();
+
 function markUnsynced(date,type,label,deleted){
   unsyncedQueue=unsyncedQueue.filter(u=>u.date!==date);
   unsyncedQueue.push({date,type,label,deleted:!!deleted});

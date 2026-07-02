@@ -1236,6 +1236,19 @@ const _supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{
 });
 
 window._bloomCurrentEmail=null;
+let _notifyChannel=null;
+function subscribeNotifyRealtime(email){
+  if(_notifyChannel)_supabase.removeChannel(_notifyChannel);
+  _notifyChannel=_supabase.channel('notify-'+email)
+    .on('postgres_changes',{
+      event:'UPDATE',schema:'public',table:'bloom_absence_reports',
+      filter:'submitted_by_email=eq.'+email
+    },()=>{checkNotifyBadge(email);})
+    .subscribe();
+}
+function unsubscribeNotifyRealtime(){
+  if(_notifyChannel){_supabase.removeChannel(_notifyChannel);_notifyChannel=null;}
+}
 _supabase.auth.onAuthStateChange((event,session)=>{
   const btn=document.getElementById('authNavBtn');
   if(session&&session.user){
@@ -1245,16 +1258,19 @@ _supabase.auth.onAuthStateChange((event,session)=>{
     document.getElementById('accountName').value=session.user.user_metadata?.display_name||'';
     window._bloomCurrentEmail=session.user.email;
     checkNotifyBadge(session.user.email);
+    subscribeNotifyRealtime(session.user.email);
   }else{
     btn.textContent='Sign in';
     btn.onclick=openAuthModal;
     window._bloomCurrentEmail=null;
     setNotifyBadge(false);
+    unsubscribeNotifyRealtime();
   }
 });
 
-// Periodically re-check for a new acknowledgement while signed in, so the
-// badge shows up without needing a manual refresh (checked every 60s).
+// Fallback poll — catches anything missed if the realtime socket dropped
+// (e.g. phone locked, tab backgrounded). Realtime handles the fast path;
+// this is just a safety net, checked every 60s.
 setInterval(()=>{
   if(window._bloomCurrentEmail)checkNotifyBadge(window._bloomCurrentEmail);
 },60000);
