@@ -446,7 +446,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="popup-close" onclick="closePopup()">✕</button>
     <div class="popup-body">
     <div class="popup-date" id="popupDate"></div>
-    <div class="popup-type-badge" id="popupBadge"></div>
+    <div class="popup-badges" style="display:flex;gap:6px;flex-wrap:wrap;">
+      <div class="popup-type-badge" id="popupBadgePD" style="display:none;"></div>
+      <div class="popup-type-badge" id="popupBadge"></div>
+    </div>
     <div class="popup-info" id="popupInfo"></div>
     </div>
   </div>
@@ -1150,6 +1153,15 @@ function openPopup(y,m,d){
   const type=data?data.type:null;
   const tm=type?TYPE_META[type]:null;
   const badge=document.getElementById('popupBadge');
+  const badgePD=document.getElementById('popupBadgePD');
+  if(type==='early'){
+    badgePD.textContent=TYPE_META.pd.label;
+    badgePD.style.background=TYPE_META.pd.bg;
+    badgePD.style.color=TYPE_META.pd.color;
+    badgePD.style.display='inline-block';
+  }else{
+    badgePD.style.display='none';
+  }
   if(tm){badge.textContent=tm.label;badge.style.background=tm.bg;badge.style.color=tm.color;}
   else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';}
   let info='';
