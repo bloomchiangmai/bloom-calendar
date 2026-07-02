@@ -913,8 +913,8 @@ function renderMainLegendStrip(){
   html+=`<div class="legend-desktop-rows"><div class="main-legend-row">${['school','break','holiday','pd','event','early'].map(pill).join('')}${hasToday?todayPill:''}</div></div>`;
   // Mobile: 2-row split (row1: school/break, row2: holiday/pd/event/early), Today gets its own row
   html+=`<div class="legend-mobile-rows">`;
-  html+=`<div class="main-legend-row">${['school','break'].map(pill).join('')}</div>`;
-  html+=`<div class="main-legend-row">${['holiday','pd','event','early'].map(pill).join('')}</div>`;
+  html+=`<div class="main-legend-row">${['school','break','holiday'].map(pill).join('')}</div>`;
+  html+=`<div class="main-legend-row">${['pd','event','early'].map(pill).join('')}</div>`;
   if(hasToday)html+=`<div class="main-legend-row">${todayPill}</div>`;
   html+=`</div>`;
   document.getElementById('mainLegendStrip').innerHTML=html;
