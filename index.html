@@ -120,6 +120,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .key-date-label.break{color:var(--break-color);}
 .key-date-label.pd{color:var(--pd-color);}
 .key-date-label.holiday{color:var(--holiday-color);}
+.key-date-label.early{color:var(--early-color);}
 .key-date-value{font-size:13px;color:var(--text);font-weight:500;}
 .legend{display:flex;flex-direction:column;gap:7px;}
 .legend-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-muted);}
@@ -299,10 +300,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="sidebar-body">
         <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value">31 Aug – 18 Dec 2026</span></div>
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">27 Nov 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 25 Jun 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">19 Mar – 15 Apr 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">8 Feb 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 29 Jun 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 14:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -369,10 +369,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="sidebar-body">
         <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value">31 Aug – 18 Dec 2026</span></div>
         <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 – 30 Oct 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">27 Nov 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 25 Jun 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">19 Mar – 15 Apr 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label pd">PD Day</span><span class="key-date-value">8 Feb 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value">4 Jan – 29 Jun 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label early">Early Dismissal</span><span class="key-date-value">Every Wed, 14:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -871,15 +870,15 @@ function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padSta
 
 sr(2026,7,31,2026,11,18,'school');
 sr(2026,9,26,2026,9,30,'break','School Break');
-sd(2026,10,27,'pd','Professional Development Day');
 sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
-sr(2027,0,4,2027,5,25,'school');
-sr(2027,2,19,2027,3,15,'break','School Break');
-sd(2027,1,8,'pd','Professional Development Day');
+sr(2027,0,4,2027,5,29,'school');
+sr(2027,2,22,2027,3,15,'break','School Break');
 sd(2027,4,1,'holiday','Labour Day');
 sd(2027,4,20,'holiday','Visakha Bucha Day');
 ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
 Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
+// Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
+Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 14:30'};}});
 
 let overrides=JSON.parse(localStorage.getItem('bloom_cal_overrides')||'{}');
 let currentMobileMonth=0;
@@ -942,7 +941,7 @@ function renderLegend(){
 function getDay(y,m,d){return overrides[dk(y,m,d)]||BASE[dk(y,m,d)]||null;}
 
 const YEAR_START=new Date(2026,7,31);
-const YEAR_END=new Date(2027,5,25);
+const YEAR_END=new Date(2027,5,29);
 
 function calcStats(){
   const realToday=new Date();
@@ -955,7 +954,7 @@ function calcStats(){
     const days=new Date(year,month+1,0).getDate();
     for(let d=1;d<=days;d++){
       const data=getDay(year,month,d);
-      if(data&&data.type==='school'){total++;if(new Date(year,month,d)>=today)remaining++;}
+      if(data&&(data.type==='school'||data.type==='early')){total++;if(new Date(year,month,d)>=today)remaining++;}
       if(data&&data.type==='holiday'&&!nextHol&&new Date(year,month,d)>today)
         nextHol={date:new Date(year,month,d),label:data.label};
     }
