@@ -773,7 +773,6 @@ sr(2026,9,26,2026,9,30,'break','School Break');
 sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
 sr(2027,0,4,2027,5,29,'school');
 sr(2027,2,22,2027,3,15,'break','School Break');
-sd(2027,4,1,'holiday','Labour Day');
 sd(2027,4,20,'holiday','Visakha Bucha Day');
 ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
 Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
