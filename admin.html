@@ -410,12 +410,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="term-card" onclick="openTermBreakdown('term1')">
         <div class="term-label">Term 1 <span style="font-size:10px;color:var(--text-muted);font-weight:400;">tap for breakdown</span></div>
         <div class="term-days" id="term1Days">—</div>
-        <div class="term-sub">31 Aug – 18 Dec 2026</div>
+        <div class="term-sub" id="term1Sub">31 Aug – 18 Dec 2026</div>
       </div>
       <div class="term-card" onclick="openTermBreakdown('term2')">
         <div class="term-label">Term 2 <span style="font-size:10px;color:var(--text-muted);font-weight:400;">tap for breakdown</span></div>
         <div class="term-days" id="term2Days">—</div>
-        <div class="term-sub">4 Jan – 25 Jun 2027</div>
+        <div class="term-sub" id="term2Sub">4 Jan – 25 Jun 2027</div>
       </div>
     </div>
 
@@ -1226,6 +1226,9 @@ function calcDays(){
   const total=t1+t2;
   document.getElementById('term1Days').textContent=t1;
   document.getElementById('term2Days').textContent=t2;
+  const fmt=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('term1Sub').textContent=`${fmt(YEAR_START)} – ${fmt(TERM1_END)}`;
+  document.getElementById('term2Sub').textContent=`${fmt(TERM2_START)} – ${fmt(YEAR_END)}`;
   document.getElementById('totalDaysDisplay').textContent=total;
   document.getElementById('dayCountNum').textContent=total;
   const card=document.getElementById('totalCard');
