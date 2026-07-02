@@ -928,6 +928,7 @@ function renderLegend(){
       if(data&&data.type)used.add(data.type);
     }
   });
+  used.add('pd'); // always show PD Day in the legend even if no dates currently use it
   const order=['school','break','pd','holiday','event','early','closure','makeup'];
   let html='';
   order.filter(t=>used.has(t)).forEach(t=>{
