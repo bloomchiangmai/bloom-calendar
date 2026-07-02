@@ -1146,6 +1146,7 @@ async function finishSetup(){
   try{
     const yr=await sbSaveYear(obData);
     if(yr){
+      await sbDeleteAllEvents();
       const events=Object.entries(newOverrides).map(([date,d])=>({date,type:d.type,label:d.label}));
       await sbSaveBulk(events);
     }
@@ -1946,6 +1947,13 @@ async function sbSyncDates(dates,type,label,isRemove){
     }
     dates.forEach(d=>clearUnsynced(d));
   }catch(e){console.log('Bulk sync failed',e);dates.forEach(d=>markUnsynced(d,type,label,isRemove));}
+}
+
+async function sbDeleteAllEvents(){
+  if(!_locId)return;
+  try{
+    await _sb.from('bloom_calendar_events').delete().eq('location_id',_locId);
+  }catch(e){console.log('Supabase delete-all failed',e);}
 }
 
 async function sbSaveBulk(events){
