@@ -903,15 +903,18 @@ function renderMainLegendStrip(){
       if(today.getFullYear()===year&&today.getMonth()===month&&today.getDate()===d)hasToday=true;
     }
   });
-  const pill=t=>`<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}">${TYPE_META[t].label}</span>`;
+  const pill=t=>{
+    const ring=t==='early'?`;box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--pd-color) 55%, transparent)`:'';
+    return `<span class="main-legend-pill" style="background:${TYPE_META[t].bg};color:${TYPE_META[t].color}${ring}">${TYPE_META[t].label}</span>`;
+  };
   const todayPill=`<span class="main-legend-pill" style="background:var(--orange);color:white">Today</span>`;
   let html='';
-  // Desktop: all 5 types in a single row (ample width), Today appended at the end if applicable
-  html+=`<div class="legend-desktop-rows"><div class="main-legend-row">${['school','break','holiday','pd','event'].map(pill).join('')}${hasToday?todayPill:''}</div></div>`;
-  // Mobile: 2-row split (row1: school/break, row2: holiday/pd/event), Today gets its own row
+  // Desktop: all 6 types in a single row, Today appended at the end if applicable
+  html+=`<div class="legend-desktop-rows"><div class="main-legend-row">${['school','break','holiday','pd','event','early'].map(pill).join('')}${hasToday?todayPill:''}</div></div>`;
+  // Mobile: 2-row split (row1: school/break, row2: holiday/pd/event/early), Today gets its own row
   html+=`<div class="legend-mobile-rows">`;
   html+=`<div class="main-legend-row">${['school','break'].map(pill).join('')}</div>`;
-  html+=`<div class="main-legend-row">${['holiday','pd','event'].map(pill).join('')}</div>`;
+  html+=`<div class="main-legend-row">${['holiday','pd','event','early'].map(pill).join('')}</div>`;
   if(hasToday)html+=`<div class="main-legend-row">${todayPill}</div>`;
   html+=`</div>`;
   document.getElementById('mainLegendStrip').innerHTML=html;
