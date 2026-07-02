@@ -859,10 +859,10 @@ const THAI_HOLIDAYS = [
 
 let obData = {
   t1Start:'2026-08-31', t1End:'2026-12-18',
-  t2Start:'2027-01-04', t2End:'2027-06-25',
-  breaks:[{from:'2026-10-26',to:'2026-10-30',label:'Term 1 Break'},{from:'2027-03-19',to:'2027-04-15',label:'Term 2 Break'}],
+  t2Start:'2027-01-04', t2End:'2027-06-29',
+  breaks:[{from:'2026-10-26',to:'2026-10-30',label:'Term 1 Break'},{from:'2027-03-22',to:'2027-04-15',label:'Term 2 Break'}],
   holidays: new Set(THAI_HOLIDAYS.map(h=>h.date)),
-  pdDays:['2026-11-27','2027-02-08']
+  pdDays:[]
 };
 
 function routeAfterAuth(setupDone){
@@ -1131,6 +1131,12 @@ async function finishSetup(){
     newOverrides[date]={type:'holiday',label:h?h.name:'Public Holiday'};
   });
   obData.pdDays.forEach(date=>{newOverrides[date]={type:'pd',label:'Professional Development Day'};});
+  // Early Dismissal: every Wednesday still marked 'school' after breaks/holidays applied
+  Object.keys(newOverrides).forEach(k=>{
+    if(newOverrides[k].type==='school'&&new Date(k).getDay()===3){
+      newOverrides[k]={type:'early',label:'Early Dismissal – 14:30'};
+    }
+  });
 
   overrides=newOverrides;
   localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
@@ -1712,7 +1718,7 @@ function rejectChange(id){
 function openTermBreakdown(term){
   const iT1=term==='term1';
   const start=iT1?new Date(2026,7,31):new Date(2027,0,4);
-  const end=iT1?new Date(2026,11,18):new Date(2027,5,25);
+  const end=iT1?new Date(2026,11,18):new Date(2027,5,29);
   const byMonth={};let ts=0,th=0,tp=0,tb=0;
   CALENDAR_MONTHS.forEach(({year,month})=>{
     const ms=new Date(year,month,1),me=new Date(year,month+1,0);
