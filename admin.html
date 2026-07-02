@@ -1911,11 +1911,11 @@ async function sbInit(){
       const{data:yr}=await _sb.from('bloom_academic_years').select('id').eq('location_id',_locId).eq('is_active',true).maybeSingle();
       if(yr)_yearId=yr.id;
       const{data:events}=await _sb.from('bloom_calendar_events').select('*').eq('location_id',_locId);
+      overrides={};
       if(events&&events.length>0){
-        overrides={};
         events.forEach(ev=>{overrides[ev.date]={type:ev.day_type,label:ev.label||'',sbId:ev.id};});
-        localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
       }
+      localStorage.setItem('bloom_cal_overrides',JSON.stringify(overrides));
     }
   }catch(e){console.log('Supabase init failed, using localStorage',e);}
 }
