@@ -515,10 +515,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
         <span style="color:var(--text-muted);">›</span>
       </div>
-      <div class="settings-row" onclick="alert('Re-run setup wizard coming in Phase 2')">
+      <div class="settings-row" onclick="openEditTermDatesModal()">
         <div>
           <div class="settings-row-label">Edit Term Dates</div>
-          <div class="settings-row-sub">Adjust term start/end, breaks, holidays</div>
+          <div class="settings-row-sub">Adjust term start/end dates only</div>
         </div>
         <span style="color:var(--text-muted);">›</span>
       </div>
@@ -683,6 +683,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('addEventModal')">Cancel</button>
       <button class="btn btn-primary" onclick="submitEvent()">Submit for Approval</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TERM DATES MODAL -->
+<div class="modal-overlay" id="editTermDatesModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Term Dates</div>
+    <div class="modal-sub">Updates term start/end only. Does not touch breaks, holidays, or any existing calendar events.</div>
+    <div class="form-group">
+      <label class="form-label">Term 1 Start</label>
+      <input type="date" class="form-input" id="etdT1Start">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Term 1 End</label>
+      <input type="date" class="form-input" id="etdT1End">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Term 2 Start</label>
+      <input type="date" class="form-input" id="etdT2Start">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Term 2 End</label>
+      <input type="date" class="form-input" id="etdT2End">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('editTermDatesModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTermDates()">Save</button>
     </div>
   </div>
 </div>
@@ -1855,6 +1884,49 @@ function archiveYear(){
 }
 
 // ── SETTINGS ─────────────────────────────────────────────────────
+
+function partsToInputValue(parts){
+  const[y,m,d]=parts;
+  return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function openEditTermDatesModal(){
+  document.getElementById('etdT1Start').value=partsToInputValue(TERM_DATES.t1Start);
+  document.getElementById('etdT1End').value=partsToInputValue(TERM_DATES.t1End);
+  document.getElementById('etdT2Start').value=partsToInputValue(TERM_DATES.t2Start);
+  document.getElementById('etdT2End').value=partsToInputValue(TERM_DATES.t2End);
+  document.getElementById('editTermDatesModal').classList.add('open');
+}
+
+async function saveTermDates(){
+  const t1s=document.getElementById('etdT1Start').value;
+  const t1e=document.getElementById('etdT1End').value;
+  const t2s=document.getElementById('etdT2Start').value;
+  const t2e=document.getElementById('etdT2End').value;
+  if(!t1s||!t1e||!t2s||!t2e){alert('All four dates are required.');return;}
+  if(t1s>=t1e){alert('Term 1 start must be before Term 1 end.');return;}
+  if(t2s>=t2e){alert('Term 2 start must be before Term 2 end.');return;}
+  if(t1e>=t2s){alert('Term 1 must end before Term 2 starts.');return;}
+  if(!_yearId){alert('No active academic year found — cannot save.');return;}
+  try{
+    const{error}=await _sb.from('bloom_academic_years').update({
+      t1_start:t1s,t1_end:t1e,t2_start:t2s,t2_end:t2e
+    }).eq('id',_yearId);
+    if(error)throw error;
+    TERM_DATES={
+      t1Start:parseDateParts(t1s),t1End:parseDateParts(t1e),
+      t2Start:parseDateParts(t2s),t2End:parseDateParts(t2e)
+    };
+    buildCalendarFromTerms();
+    calcDays();renderAdminCalendar();
+    addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, T2 ${t2s}–${t2e}`,'Admin');
+    closeModal('editTermDatesModal');
+  }catch(e){
+    console.log('Save term dates failed',e);
+    alert('Failed to save term dates. Check your connection and try again.');
+  }
+}
+
 function switchTab(tab){
   const wasCalendarActive=tab==='calendar'&&document.getElementById('mnav-calendar').classList.contains('active')&&document.getElementById('content-calendar').classList.contains('active');
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
