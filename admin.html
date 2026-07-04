@@ -2058,6 +2058,21 @@ function hexToRgb(hex){
   const num=parseInt(hex,16);
   return[(num>>16)&255,(num>>8)&255,num&255];
 }
+function loadImageAsDataURL(src){
+  return new Promise((resolve)=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement('canvas');
+        canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;
+        canvas.getContext('2d').drawImage(img,0,0);
+        resolve({data:canvas.toDataURL('image/png'),w:img.naturalWidth,h:img.naturalHeight});
+      }catch(e){resolve(null);}
+    };
+    img.onerror=()=>resolve(null);
+    img.src=src;
+  });
+}
 // NOTE: Key Dates / Official Holidays / School Hours are hardcoded here to match
 // the same static text on the public calendar's index.html. Public calendar does
 // not query these live either. If term dates or holidays change, update BOTH
@@ -2084,9 +2099,48 @@ async function exportCalendarPDF(){
     btn.textContent='Generating\u2026';btn.disabled=true;
 
     const{jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
-    const pageW=420,pageH=297,margin=10;
+    const pageW=420,margin=10;
     const contentX=margin,contentW=pageW-2*margin;
+
+    // Load the real logo asset before creating the page (admin has no <img>
+    // logo element on screen, so fetch the same file the public page uses).
+    const logoInfo=await loadImageAsDataURL('assets/logo.png');
+
+    const dayTypeItems=[
+      {label:'School Day',t:'school'},{label:'School Break',t:'break'},
+      {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
+      {label:'School Event',t:'event'},{label:'Early Dismissal',t:'early'}
+    ];
+
+    // ---- Layout math (pure geometry, no drawing yet) ----
+    const headerY=margin,headerH=16;
+    const statsY=headerY+headerH+4,statsH=13;
+    const legendY=statsY+statsH+4,legendH=7;
+    const gridY=legendY+legendH+5;
+
+    const sidebarW=72,gapMain=5;
+    const gridW=contentW-sidebarW-gapMain;
+    const sidebarX=contentX+gridW+gapMain;
+    const cols=6,rows=2,colGap=3,rowGap=4;
+    const cardW=(gridW-(cols-1)*colGap)/cols;
+    const monthHeaderH=8,dowRowH=4;
+    const cellW=cardW/7,cellH=cellW;
+    const cardH=monthHeaderH+dowRowH+cellH*6;
+    const gridBlockH=cardH*rows+rowGap*(rows-1);
+
+    const kdRowH=7.2,holRowH=7.2,hoursRowH=6.5,dtRowH=5.8;
+    const sidebarCardH=(rowsCount,rowH)=>7+rowsCount*rowH+4;
+    const sidebarTotalH=
+      sidebarCardH(PDF_KEY_DATES.length,kdRowH)+4+
+      sidebarCardH(PDF_HOLIDAYS.length,holRowH)+4+
+      sidebarCardH(PDF_HOURS.length,hoursRowH)+4+
+      sidebarCardH(dayTypeItems.length,dtRowH);
+
+    const contentBlockH=Math.max(gridBlockH,sidebarTotalH);
+    const pageH=gridY+contentBlockH+margin;
+
+    // ---- Create the page at the exact size the content needs ----
+    const doc=new jsPDF({unit:'mm',format:[pageW,pageH]});
 
     const purple=hexToRgb(cssVar('--purple'));
     const orange=hexToRgb(cssVar('--orange'));
@@ -2106,21 +2160,23 @@ async function exportCalendarPDF(){
     };
 
     // ---- Header bar ----
-    const headerY=margin,headerH=16;
     doc.setFillColor(...purple);doc.rect(contentX,headerY,contentW,headerH,'F');
-    doc.setTextColor(...white);
-    doc.setFont('helvetica','bold');doc.setFontSize(17);
-    doc.text('bloom.',contentX+6,headerY+10);
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-    doc.text('chiangmai',contentX+6,headerY+13.8);
-    doc.setFont('helvetica','bold');doc.setFontSize(13);
+    if(logoInfo){
+      const logoH=11,logoW=logoH*(logoInfo.w/logoInfo.h);
+      doc.addImage(logoInfo.data,'PNG',contentX+5,headerY+(headerH-logoH)/2,logoW,logoH);
+    }else{
+      doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(17);
+      doc.text('bloom.',contentX+6,headerY+10);
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+      doc.text('chiangmai',contentX+6,headerY+13.8);
+    }
+    doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(13);
     doc.text('Academic Calendar 2026\u20132027',pageW/2,headerY+10,{align:'center'});
     doc.setFont('helvetica','normal');doc.setFontSize(7);
     const genDate='Generated '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
     doc.text(genDate,contentX+contentW-6,headerY+headerH-4,{align:'right'});
 
     // ---- Stats bar ----
-    const statsY=headerY+headerH+4,statsH=13;
     doc.setDrawColor(...border);doc.setFillColor(...white);
     doc.rect(contentX,statsY,contentW,statsH,'FD');
     let totalSchoolDays=0;
@@ -2150,7 +2206,6 @@ async function exportCalendarPDF(){
     }
 
     // ---- Legend strip ----
-    const legendY=statsY+statsH+4,legendH=7;
     const pills=[
       {label:'School Day',t:'school'},{label:'School Break',t:'break'},
       {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
@@ -2168,20 +2223,8 @@ async function exportCalendarPDF(){
       px+=pw+4;
     });
 
-    // ---- Grid + sidebar area ----
-    const gridY=legendY+legendH+5;
-    const gridAreaH=pageH-margin-gridY;
-    const sidebarW=72,gapMain=5;
-    const gridW=contentW-sidebarW-gapMain;
-    const sidebarX=contentX+gridW+gapMain;
-
-    const cols=6,rows=2,colGap=3,rowGap=4;
-    const cardW=(gridW-(cols-1)*colGap)/cols;
-    const monthHeaderH=8,dowRowH=4;
-    const cellW=cardW/7,cellH=cellW;
-    const cardH=monthHeaderH+dowRowH+cellH*6;
-    const gridBlockH=cardH*rows+rowGap*(rows-1);
-    const gridBlockY=gridY+Math.max(0,(gridAreaH-gridBlockH)/2);
+    // ---- Grid + sidebar area (positions already computed above) ----
+    const gridBlockY=gridY;
     const dowLabels=['M','T','W','T','F','S','S'];
 
     (CALENDAR_MONTHS||[]).slice(0,12).forEach((m,i)=>{
@@ -2298,11 +2341,6 @@ async function exportCalendarPDF(){
     }
 
     // Day Types
-    const dayTypeItems=[
-      {label:'School Day',t:'school'},{label:'School Break',t:'break'},
-      {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
-      {label:'School Event',t:'event'},{label:'Early Dismissal',t:'early'}
-    ];
     sidebarCardHeader('Day Types',sidebarW);
     {
       const rowH=5.8;
