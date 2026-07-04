@@ -84,7 +84,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .main-layout{display:grid;grid-template-columns:1fr 280px;gap:24px;padding:24px 4%;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box;}
 
 /* CALENDAR GRID - fixed 5 col, wraps naturally */
-.calendar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch;}
+.calendar-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;align-items:stretch;}
 
 /* MONTH CARD */
 .month-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;}
@@ -1042,8 +1042,8 @@ function renderCalendar(){
     card.innerHTML=html;
     grid.appendChild(card);
   });
-  // Fill last row - 11 months in 5-col grid leaves 4 empty spots, add invisible placeholders
-  const cols=5;
+  // Fill last row if MONTHS.length isn't a multiple of 4 (normally it is, 12 months = exactly 3 rows)
+  const cols=4;
   const remainder=MONTHS.length%cols;
   if(remainder>0){
     for(let i=0;i<(cols-remainder);i++){
