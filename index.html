@@ -1456,7 +1456,7 @@ async function exportCalendarPDF(){
     const cardH=monthHeaderH+dowRowH+cellH*6;
     const gridBlockH=cardH*rows+rowGap*(rows-1);
 
-    let kdRowH=10.5,holRowH=10.5,hoursRowH=9.5,dtRowH=8.5;
+    let kdRowH=10.5,holRowH=10.5,hoursRowH=10,dtRowH=9;
     const sidebarCardH=(rowsCount,rowH)=>11+rowsCount*rowH+5;
     let sidebarTotalH=0;
     if(keyDates.length)sidebarTotalH+=sidebarCardH(keyDates.length,kdRowH)+4;
@@ -1465,10 +1465,13 @@ async function exportCalendarPDF(){
     sidebarTotalH+=sidebarCardH(dayTypeItems.length,dtRowH);
 
     const gridBlockHForStretch=cardH*rows+rowGap*(rows-1);
-    const totalSidebarRows=keyDates.length+holidays.length+hoursRows.length+dayTypeItems.length;
-    if(totalSidebarRows>0&&gridBlockHForStretch>sidebarTotalH){
-      const delta=(gridBlockHForStretch-sidebarTotalH)/totalSidebarRows;
-      kdRowH+=delta;holRowH+=delta;hoursRowH+=delta;dtRowH+=delta;
+    // Only Key Dates and Holidays have two-line rows (label + value), so extra
+    // height reads as natural spacing there. School Hours and Day Types are
+    // single-line rows; stretching them the same way just creates dead gaps.
+    const stretchableRows=keyDates.length+holidays.length;
+    if(stretchableRows>0&&gridBlockHForStretch>sidebarTotalH){
+      const delta=(gridBlockHForStretch-sidebarTotalH)/stretchableRows;
+      kdRowH+=delta;holRowH+=delta;
       sidebarTotalH=0;
       if(keyDates.length)sidebarTotalH+=sidebarCardH(keyDates.length,kdRowH)+4;
       if(holidays.length)sidebarTotalH+=sidebarCardH(holidays.length,holRowH)+4;
@@ -1639,10 +1642,10 @@ async function exportCalendarPDF(){
       let ry=sy+6.5;
       keyDates.forEach(item=>{
         doc.setTextColor(...(labelColorMap[item.labelClass]||purple));
-        doc.setFont('helvetica','bold');doc.setFontSize(8);
+        doc.setFont('helvetica','bold');doc.setFontSize(9);
         doc.text(item.label.toUpperCase(),sidebarX+5,ry);
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
-        doc.text(item.value,sidebarX+5,ry+4.6);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
+        doc.text(item.value,sidebarX+5,ry+5);
         ry+=rowH;
       });
       sy+=boxH+5;
@@ -1656,10 +1659,10 @@ async function exportCalendarPDF(){
       let ry=sy+6.5;
       holidays.forEach(item=>{
         doc.setTextColor(...hexToRgb(cssVar('--holiday-color')));
-        doc.setFont('helvetica','bold');doc.setFontSize(8);
+        doc.setFont('helvetica','bold');doc.setFontSize(9);
         doc.text(item.label,sidebarX+5,ry);
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
-        doc.text(item.value,sidebarX+5,ry+4.6);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
+        doc.text(item.value,sidebarX+5,ry+5);
         ry+=rowH;
       });
       sy+=boxH+5;
@@ -1672,9 +1675,9 @@ async function exportCalendarPDF(){
       const boxH=sidebarCardBox(hoursRows.length,rowH,sidebarW);
       let ry=sy+7;
       hoursRows.forEach(r=>{
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
         doc.text(r.day,sidebarX+5,ry);
-        doc.setTextColor(...purple);doc.setFont('helvetica','bold');doc.setFontSize(9.5);
+        doc.setTextColor(...purple);doc.setFont('helvetica','bold');doc.setFontSize(10.5);
         doc.text(r.time,sidebarX+sidebarW-5,ry,{align:'right'});
         ry+=rowH;
       });
@@ -1686,15 +1689,15 @@ async function exportCalendarPDF(){
     {
       const rowH=dtRowH;
       const boxH=sidebarCardBox(dayTypeItems.length,rowH,sidebarW);
-      let ry=sy+6;
+      let ry=sy+6.5;
       dayTypeItems.forEach(it=>{
         if(it.ring){
-          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2,'F');
-          doc.setDrawColor(255,255,255);doc.setLineWidth(0.45);doc.circle(sidebarX+6,ry-1.2,1.05,'S');
+          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2.1,'F');
+          doc.setDrawColor(255,255,255);doc.setLineWidth(0.45);doc.circle(sidebarX+6,ry-1.2,1.1,'S');
         }else{
-          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2,'F');
+          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2.1,'F');
         }
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(10.5);
         doc.text(it.label,sidebarX+12,ry);
         ry+=rowH;
       });
