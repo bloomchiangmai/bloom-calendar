@@ -2349,8 +2349,8 @@ async function exportCalendarPDF(){
       dayTypeItems.forEach(it=>{
         const tc=typeColors[it.t];
         if(tc.ring){
-          doc.setFillColor(...tc.bg);doc.circle(sidebarX+5,ry-1,1.4,'F');
-          doc.setDrawColor(...tc.color);doc.setLineWidth(0.25);doc.circle(sidebarX+5,ry-1,1.4,'S');
+          doc.setFillColor(...tc.color);doc.circle(sidebarX+5,ry-1,1.4,'F');
+          doc.setDrawColor(255,255,255);doc.setLineWidth(0.35);doc.circle(sidebarX+5,ry-1,0.75,'S');
         }else{
           doc.setFillColor(...tc.color);doc.circle(sidebarX+5,ry-1,1.4,'F');
         }
