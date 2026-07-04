@@ -296,6 +296,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @media(max-width:768px){.mini-cal-grid{grid-template-columns:repeat(2,1fr);}.term-summary{grid-template-columns:1fr 1fr;}.day-type-grid{grid-template-columns:repeat(2,1fr);}.mobile-nav{display:block;}.tabs{display:none;}.ve-cal-grid{grid-template-columns:repeat(2,1fr);}.header{padding:0 1rem;}.tab-content{padding:1rem 1rem 80px;}.attention-strip{padding:10px 1rem;}.cal-controls{display:none;}}
 @media(min-width:900px){.mini-cal-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -422,7 +423,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="cal-controls">
       <button class="btn btn-primary" onclick="openAddEvent()">+ Add Event</button>
       <button class="btn btn-outline" onclick="openMultiSelect()">⊞ Multi-select</button>
-      <button class="btn btn-outline" onclick="window.print()">↗ Export PDF</button>
+      <button class="btn btn-outline" id="pdfExportBtn" onclick="exportCalendarPDF()">↗ Export PDF</button>
     </div>
 
     <div class="card" style="margin-bottom:16px;">
@@ -2048,6 +2049,282 @@ if(localStorage.getItem('bloom_admin')==='true'){
     if(setupDone)localStorage.setItem('bloom_setup_done','true');
     routeAfterAuth(setupDone);
   });
+}
+// ===== PDF Export (matches public calendar output) =====
+function cssVar(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function hexToRgb(hex){
+  hex=(hex||'#000000').replace('#','');
+  if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const num=parseInt(hex,16);
+  return[(num>>16)&255,(num>>8)&255,num&255];
+}
+// NOTE: Key Dates / Official Holidays / School Hours are hardcoded here to match
+// the same static text on the public calendar's index.html. Public calendar does
+// not query these live either. If term dates or holidays change, update BOTH
+// index.html and this block, or the two PDFs will silently drift apart.
+const PDF_KEY_DATES=[
+  {label:'TERM 1',labelClass:'term',value:'31 Aug \u2013 18 Dec 2026'},
+  {label:'BREAK',labelClass:'break',value:'26 Oct \u2013 30 Oct 2026'},
+  {label:'TERM 2',labelClass:'term',value:'4 Jan \u2013 29 Jun 2027'},
+  {label:'BREAK',labelClass:'break',value:'22 Mar \u2013 15 Apr 2027'}
+];
+const PDF_HOLIDAYS=[
+  {label:'13 OCT 2026',value:'HM King Bhumibol Memorial Day'},
+  {label:'20 MAY 2027',value:'Visakha Bucha Day'}
+];
+const PDF_HOURS=[
+  {day:'Mon, Tue, Thu, Fri',time:'08:30 \u2013 15:30'},
+  {day:'Wed',time:'08:30 \u2013 13:30'}
+];
+async function exportCalendarPDF(){
+  const btn=document.getElementById('pdfExportBtn');
+  const originalLabel=btn.textContent;
+  try{
+    if(typeof window.jspdf==='undefined'){alert('PDF library failed to load. Check your connection and try again.');return;}
+    btn.textContent='Generating\u2026';btn.disabled=true;
+
+    const{jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
+    const pageW=420,pageH=297,margin=10;
+    const contentX=margin,contentW=pageW-2*margin;
+
+    const purple=hexToRgb(cssVar('--purple'));
+    const orange=hexToRgb(cssVar('--orange'));
+    const textMuted=hexToRgb(cssVar('--text-muted'));
+    const text=hexToRgb(cssVar('--text'));
+    const border=hexToRgb(cssVar('--border'));
+    const white=[255,255,255];
+    const typeColors={
+      school:{bg:hexToRgb(cssVar('--school-bg')),color:hexToRgb(cssVar('--school-color'))},
+      break:{bg:hexToRgb(cssVar('--break-bg')),color:hexToRgb(cssVar('--break-color'))},
+      pd:{bg:hexToRgb(cssVar('--pd-bg')),color:hexToRgb(cssVar('--pd-color'))},
+      holiday:{bg:hexToRgb(cssVar('--holiday-bg')),color:hexToRgb(cssVar('--holiday-color'))},
+      event:{bg:hexToRgb(cssVar('--event-bg')),color:hexToRgb(cssVar('--event-color'))},
+      early:{bg:hexToRgb(cssVar('--pd-bg')),color:hexToRgb(cssVar('--pd-color')),ring:true},
+      closure:{bg:hexToRgb(cssVar('--closure-bg')),color:hexToRgb(cssVar('--closure-color'))},
+      makeup:{bg:hexToRgb(cssVar('--makeup-bg')),color:hexToRgb(cssVar('--makeup-color'))}
+    };
+
+    // ---- Header bar ----
+    const headerY=margin,headerH=16;
+    doc.setFillColor(...purple);doc.rect(contentX,headerY,contentW,headerH,'F');
+    doc.setTextColor(...white);
+    doc.setFont('helvetica','bold');doc.setFontSize(17);
+    doc.text('bloom.',contentX+6,headerY+10);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+    doc.text('chiangmai',contentX+6,headerY+13.8);
+    doc.setFont('helvetica','bold');doc.setFontSize(13);
+    doc.text('Academic Calendar 2026\u20132027',pageW/2,headerY+10,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(7);
+    const genDate='Generated '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    doc.text(genDate,contentX+contentW-6,headerY+headerH-4,{align:'right'});
+
+    // ---- Stats bar ----
+    const statsY=headerY+headerH+4,statsH=13;
+    doc.setDrawColor(...border);doc.setFillColor(...white);
+    doc.rect(contentX,statsY,contentW,statsH,'FD');
+    let totalSchoolDays=0;
+    CALENDAR_MONTHS.forEach(({year,month})=>{
+      const dim=new Date(year,month+1,0).getDate();
+      for(let d=1;d<=dim;d++){
+        const data=getDayData(year,month,d);
+        if(data&&(data.type==='school'||data.type==='early'))totalSchoolDays++;
+      }
+    });
+    const fmtShort=dt=>dt.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const statLabels=['ACADEMIC YEAR','TOTAL SCHOOL DAYS','TERM 1','TERM 2'];
+    const statValues=[
+      `${YEAR_START.getFullYear()}\u2013${YEAR_START.getFullYear()+1}`,
+      String(totalSchoolDays),
+      fmtShort(YEAR_START)+' \u2013 '+fmtShort(TERM1_END),
+      fmtShort(TERM2_START)+' \u2013 '+fmtShort(TERM2_END)
+    ];
+    const statColW=contentW/statLabels.length;
+    for(let i=0;i<statLabels.length;i++){
+      const x=contentX+i*statColW+6;
+      doc.setTextColor(...textMuted);doc.setFont('helvetica','bold');doc.setFontSize(6.5);
+      doc.text(statLabels[i],x,statsY+5);
+      doc.setTextColor(...purple);doc.setFont('times','bold');doc.setFontSize(11);
+      doc.text(statValues[i]||'\u2014',x,statsY+10);
+      if(i<statLabels.length-1){doc.setDrawColor(...border);doc.line(contentX+(i+1)*statColW,statsY+2,contentX+(i+1)*statColW,statsY+statsH-2);}
+    }
+
+    // ---- Legend strip ----
+    const legendY=statsY+statsH+4,legendH=7;
+    const pills=[
+      {label:'School Day',t:'school'},{label:'School Break',t:'break'},
+      {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
+      {label:'School Event',t:'event'},{label:'Early Dismissal',t:'early'}
+    ];
+    doc.setFont('helvetica','bold');doc.setFontSize(7);
+    let px=contentX;
+    pills.forEach(p=>{
+      const tw=doc.getTextWidth(p.label);
+      const pw=tw+8,ph=6;
+      doc.setFillColor(...typeColors[p.t].bg);
+      doc.roundedRect(px,legendY,pw,ph,2.5,2.5,'F');
+      doc.setTextColor(...typeColors[p.t].color);
+      doc.text(p.label,px+4,legendY+4.1);
+      px+=pw+4;
+    });
+
+    // ---- Grid + sidebar area ----
+    const gridY=legendY+legendH+5;
+    const gridAreaH=pageH-margin-gridY;
+    const sidebarW=72,gapMain=5;
+    const gridW=contentW-sidebarW-gapMain;
+    const sidebarX=contentX+gridW+gapMain;
+
+    const cols=6,rows=2,colGap=3,rowGap=4;
+    const cardW=(gridW-(cols-1)*colGap)/cols;
+    const monthHeaderH=8,dowRowH=4;
+    const cellW=cardW/7,cellH=cellW;
+    const cardH=monthHeaderH+dowRowH+cellH*6;
+    const gridBlockH=cardH*rows+rowGap*(rows-1);
+    const gridBlockY=gridY+Math.max(0,(gridAreaH-gridBlockH)/2);
+    const dowLabels=['M','T','W','T','F','S','S'];
+
+    (CALENDAR_MONTHS||[]).slice(0,12).forEach((m,i)=>{
+      const row=Math.floor(i/cols),col=i%cols;
+      const cardX=contentX+col*(cardW+colGap);
+      const cardY=gridBlockY+row*(cardH+rowGap);
+
+      doc.setDrawColor(...border);doc.setFillColor(...white);
+      doc.roundedRect(cardX,cardY,cardW,cardH,1.2,1.2,'FD');
+
+      doc.setFillColor(...purple);
+      doc.rect(cardX,cardY,cardW,monthHeaderH,'F');
+      doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+      doc.text(MONTH_NAMES[m.month].toUpperCase(),cardX+cardW/2,cardY+3.8,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(6);
+      doc.text(String(m.year),cardX+cardW/2,cardY+7,{align:'center'});
+
+      doc.setTextColor(...textMuted);doc.setFont('helvetica','bold');doc.setFontSize(5.5);
+      for(let c=0;c<7;c++){
+        doc.text(dowLabels[c],cardX+c*cellW+cellW/2,cardY+monthHeaderH+dowRowH-1.2,{align:'center'});
+      }
+
+      const fd=new Date(m.year,m.month,1).getDay();
+      const offset=fd===0?6:fd-1;
+      const dim=new Date(m.year,m.month+1,0).getDate();
+      const startY=cardY+monthHeaderH+dowRowH;
+      const today=new Date();
+      for(let d=1;d<=dim;d++){
+        const idx=offset+d-1;
+        const r2=Math.floor(idx/7),c2=idx%7;
+        const cx=cardX+c2*cellW+cellW/2,cy=startY+r2*cellH+cellH/2;
+        const data=typeof getDayData==='function'?getDayData(m.year,m.month,d):null;
+        const isToday=today.getFullYear()===m.year&&today.getMonth()===m.month&&today.getDate()===d;
+        doc.setFont('helvetica',data||isToday?'bold':'normal');doc.setFontSize(5.5);
+        if(isToday){
+          doc.setFillColor(...orange);doc.circle(cx,cy,cellW*0.42,'F');
+          doc.setTextColor(...white);
+        }else if(data&&typeColors[data.type]){
+          const tc=typeColors[data.type];
+          doc.setFillColor(...tc.bg);doc.circle(cx,cy,cellW*0.42,'F');
+          if(tc.ring){doc.setDrawColor(...tc.color);doc.setLineWidth(0.15);doc.circle(cx,cy,cellW*0.42,'S');}
+          doc.setTextColor(...tc.color);
+        }else{
+          doc.setTextColor(...textMuted);
+        }
+        doc.text(String(d),cx,cy+1,{align:'center'});
+      }
+    });
+
+    // ---- Sidebar ----
+    let sy=gridY;
+    function sidebarCardHeader(title,width){
+      doc.setFillColor(...purple);doc.rect(sidebarX,sy,width,7,'F');
+      doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+      doc.text(title.toUpperCase(),sidebarX+4,sy+4.8);
+      sy+=7;
+    }
+    function sidebarCardBox(rowsCount,rowH,width){
+      const h=rowsCount*rowH+4;
+      doc.setDrawColor(...border);doc.setFillColor(...white);
+      doc.rect(sidebarX,sy,width,h,'FD');
+      return h;
+    }
+    const labelColorMap={term:purple,break:hexToRgb(cssVar('--break-color')),holiday:hexToRgb(cssVar('--holiday-color'))};
+
+    // Key Dates
+    sidebarCardHeader('Key Dates',sidebarW);
+    {
+      const rowH=7.2;
+      const boxH=sidebarCardBox(PDF_KEY_DATES.length,rowH,sidebarW);
+      let ry=sy+4.5;
+      PDF_KEY_DATES.forEach(item=>{
+        doc.setTextColor(...(labelColorMap[item.labelClass]||purple));
+        doc.setFont('helvetica','bold');doc.setFontSize(6);
+        doc.text(item.label,sidebarX+4,ry);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+        doc.text(item.value,sidebarX+4,ry+3.4);
+        ry+=rowH;
+      });
+      sy+=boxH+4;
+    }
+
+    // Official Holidays
+    sidebarCardHeader('Official Holidays',sidebarW);
+    {
+      const rowH=7.2;
+      const boxH=sidebarCardBox(PDF_HOLIDAYS.length,rowH,sidebarW);
+      let ry=sy+4.5;
+      PDF_HOLIDAYS.forEach(item=>{
+        doc.setTextColor(...hexToRgb(cssVar('--holiday-color')));
+        doc.setFont('helvetica','bold');doc.setFontSize(6);
+        doc.text(item.label,sidebarX+4,ry);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+        doc.text(item.value,sidebarX+4,ry+3.4);
+        ry+=rowH;
+      });
+      sy+=boxH+4;
+    }
+
+    // School Hours
+    sidebarCardHeader('School Hours',sidebarW);
+    {
+      const rowH=6.5;
+      const boxH=sidebarCardBox(PDF_HOURS.length,rowH,sidebarW);
+      let ry=sy+5;
+      PDF_HOURS.forEach(r=>{
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+        doc.text(r.day,sidebarX+4,ry);
+        doc.setTextColor(...purple);doc.setFont('helvetica','bold');doc.setFontSize(6.8);
+        doc.text(r.time,sidebarX+sidebarW-4,ry,{align:'right'});
+        ry+=rowH;
+      });
+      sy+=boxH+4;
+    }
+
+    // Day Types
+    const dayTypeItems=[
+      {label:'School Day',t:'school'},{label:'School Break',t:'break'},
+      {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
+      {label:'School Event',t:'event'},{label:'Early Dismissal',t:'early'}
+    ];
+    sidebarCardHeader('Day Types',sidebarW);
+    {
+      const rowH=5.8;
+      const boxH=sidebarCardBox(dayTypeItems.length,rowH,sidebarW);
+      let ry=sy+4.2;
+      dayTypeItems.forEach(it=>{
+        doc.setFillColor(...typeColors[it.t].color);
+        doc.circle(sidebarX+5,ry-1,1.4,'F');
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
+        doc.text(it.label,sidebarX+9,ry);
+        ry+=rowH;
+      });
+      sy+=boxH;
+    }
+
+    doc.save('Bloom-Chiangmai-Academic-Calendar-2026-2027.pdf');
+  }catch(err){
+    console.error('PDF export failed',err);
+    alert('Something went wrong generating the PDF. Please try again.');
+  }finally{
+    btn.textContent=originalLabel;btn.disabled=false;
+  }
 }
 </script>
 </body>
