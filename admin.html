@@ -696,7 +696,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="form-group">
       <label class="form-label">Date Range</label>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div><label class="form-label" style="font-size:11px;">From</label><input type="date" class="form-input" id="msFrom"></div>
+        <div><label class="form-label" style="font-size:11px;">From</label><input type="date" class="form-input" id="msFrom" oninput="document.getElementById('msTo').min=this.value"></div>
         <div><label class="form-label" style="font-size:11px;">To</label><input type="date" class="form-input" id="msTo"></div>
       </div>
     </div>
@@ -1613,7 +1613,7 @@ function submitEvent(){
 
 // ── MULTI SELECT ─────────────────────────────────────────────────
 function openMultiSelect(){
-  document.getElementById('msFrom').value='';document.getElementById('msTo').value='';
+  document.getElementById('msFrom').value='';document.getElementById('msTo').value='';document.getElementById('msTo').min='';
   document.getElementById('msReason').value='';
   document.getElementById('multiSelectModal').classList.add('open');
 }
