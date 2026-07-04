@@ -860,7 +860,7 @@ async function doSignOut(){
 const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 let BASE={};
 let MONTHS=[];
-let YEAR_START,YEAR_END,TERM1_END,TERM2_START;
+let YEAR_START,YEAR_END,TERM1_END,TERM2_START,TERM2_END;
 
 function sr(sy,sm,sd,ey,em,ed,type,label=''){
   let c=new Date(sy,sm,sd),e=new Date(ey,em,ed);
@@ -888,13 +888,19 @@ function buildCalendarFromTerms(){
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
 
   YEAR_START=new Date(...t1Start);
-  YEAR_END=new Date(...t2End);
   TERM1_END=new Date(...t1End);
   TERM2_START=new Date(...t2Start);
+  TERM2_END=new Date(...t2End);
+
+  // Display range is always a fixed 12 months from YEAR_START, independent of
+  // when Term 2 actually ends. Extra months (e.g. July) show blank/uncolored
+  // until manually assigned day types — they don't auto-count as school days.
+  let ey=YEAR_START.getFullYear(),em=YEAR_START.getMonth()+11;
+  while(em>11){em-=12;ey++;}
+  YEAR_END=new Date(ey,em+1,0);
 
   MONTHS=[];
   let cy=YEAR_START.getFullYear(),cm=YEAR_START.getMonth();
-  const ey=YEAR_END.getFullYear(),em=YEAR_END.getMonth();
   while(cy<ey||(cy===ey&&cm<=em)){
     MONTHS.push({year:cy,month:cm});
     cm++;if(cm>11){cm=0;cy++;}
@@ -990,9 +996,9 @@ function calcStats(){
   const t=realToday;
   let term='—';
   if(t>=YEAR_START&&t<=TERM1_END)term='Term 1';
-  else if(t>=TERM2_START&&t<=YEAR_END)term='Term 2';
+  else if(t>=TERM2_START&&t<=TERM2_END)term='Term 2';
   else if(t<YEAR_START)term=YEAR_START.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  else if(t>YEAR_END)term='Year Complete';
+  else if(t>TERM2_END)term='Year Complete';
   else term='School Break';
   document.getElementById('currentTerm').textContent=term;
   document.getElementById('daysRemaining').textContent=remaining;

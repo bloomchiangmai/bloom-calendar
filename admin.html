@@ -758,7 +758,7 @@ const COUNTS_AS_SCHOOL = ['school','event','early','makeup'];
 
 // ── BASE DATA ────────────────────────────────────────────────────
 let BASE = {};
-let YEAR_START,YEAR_END,TERM1_END,TERM2_START;
+let YEAR_START,YEAR_END,TERM1_END,TERM2_START,TERM2_END;
 function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function sr(sy,sm,sd,ey,em,ed,type,label=''){
   let c=new Date(sy,sm,sd),e=new Date(ey,em,ed);
@@ -790,13 +790,19 @@ function buildCalendarFromTerms(){
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
 
   YEAR_START=new Date(...t1Start);
-  YEAR_END=new Date(...t2End);
   TERM1_END=new Date(...t1End);
   TERM2_START=new Date(...t2Start);
+  TERM2_END=new Date(...t2End);
+
+  // Display range is always a fixed 12 months from YEAR_START, independent of
+  // when Term 2 actually ends. Extra months (e.g. July) show blank/uncolored
+  // until manually assigned day types — they don't auto-count as school days.
+  let ey=YEAR_START.getFullYear(),em=YEAR_START.getMonth()+11;
+  while(em>11){em-=12;ey++;}
+  YEAR_END=new Date(ey,em+1,0);
 
   CALENDAR_MONTHS=[];
   let cy=YEAR_START.getFullYear(),cm=YEAR_START.getMonth();
-  const ey=YEAR_END.getFullYear(),em=YEAR_END.getMonth();
   while(cy<ey||(cy===ey&&cm<=em)){
     CALENDAR_MONTHS.push({year:cy,month:cm});
     cm++;if(cm>11){cm=0;cy++;}
@@ -1228,7 +1234,7 @@ function calcDays(){
   document.getElementById('term2Days').textContent=t2;
   const fmt=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   document.getElementById('term1Sub').textContent=`${fmt(YEAR_START)} – ${fmt(TERM1_END)}`;
-  document.getElementById('term2Sub').textContent=`${fmt(TERM2_START)} – ${fmt(YEAR_END)}`;
+  document.getElementById('term2Sub').textContent=`${fmt(TERM2_START)} – ${fmt(TERM2_END)}`;
   document.getElementById('totalDaysDisplay').textContent=total;
   document.getElementById('dayCountNum').textContent=total;
   const card=document.getElementById('totalCard');
@@ -1746,7 +1752,7 @@ function rejectChange(id){
 function openTermBreakdown(term){
   const iT1=term==='term1';
   const start=iT1?YEAR_START:TERM2_START;
-  const end=iT1?TERM1_END:YEAR_END;
+  const end=iT1?TERM1_END:TERM2_END;
   const byMonth={};let ts=0,th=0,tp=0,tb=0;
   CALENDAR_MONTHS.forEach(({year,month})=>{
     const ms=new Date(year,month,1),me=new Date(year,month+1,0);
