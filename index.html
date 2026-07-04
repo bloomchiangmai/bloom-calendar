@@ -1446,7 +1446,7 @@ async function exportCalendarPDF(){
     const legendY=statsY+statsH+4,legendH=9;
     const gridY=legendY+legendH+5;
 
-    const sidebarW=72,gapMain=5;
+    const sidebarW=80,gapMain=5;
     const gridW=contentW-sidebarW-gapMain;
     const sidebarX=contentX+gridW+gapMain;
     const cols=4,rows=3,colGap=3,rowGap=4;
@@ -1456,8 +1456,8 @@ async function exportCalendarPDF(){
     const cardH=monthHeaderH+dowRowH+cellH*6;
     const gridBlockH=cardH*rows+rowGap*(rows-1);
 
-    let kdRowH=8.8,holRowH=8.8,hoursRowH=8,dtRowH=7.2;
-    const sidebarCardH=(rowsCount,rowH)=>9+rowsCount*rowH+4;
+    let kdRowH=10.5,holRowH=10.5,hoursRowH=9.5,dtRowH=8.5;
+    const sidebarCardH=(rowsCount,rowH)=>11+rowsCount*rowH+5;
     let sidebarTotalH=0;
     if(keyDates.length)sidebarTotalH+=sidebarCardH(keyDates.length,kdRowH)+4;
     if(holidays.length)sidebarTotalH+=sidebarCardH(holidays.length,holRowH)+4;
@@ -1618,13 +1618,13 @@ async function exportCalendarPDF(){
     // ---- Sidebar ----
     let sy=gridY;
     function sidebarCardHeader(title,width){
-      doc.setFillColor(...purple);doc.rect(sidebarX,sy,width,9,'F');
-      doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(9);
-      doc.text(title.toUpperCase(),sidebarX+4,sy+6);
-      sy+=9;
+      doc.setFillColor(...purple);doc.rect(sidebarX,sy,width,11,'F');
+      doc.setTextColor(...white);doc.setFont('helvetica','bold');doc.setFontSize(10.5);
+      doc.text(title.toUpperCase(),sidebarX+5,sy+7.3);
+      sy+=11;
     }
     function sidebarCardBox(rowsCount,rowH,width){
-      const h=rowsCount*rowH+4;
+      const h=rowsCount*rowH+5;
       doc.setDrawColor(...border);doc.setFillColor(...white);
       doc.rect(sidebarX,sy,width,h,'FD');
       return h;
@@ -1636,16 +1636,16 @@ async function exportCalendarPDF(){
       sidebarCardHeader('Key Dates',sidebarW);
       const rowH=kdRowH;
       const boxH=sidebarCardBox(keyDates.length,rowH,sidebarW);
-      let ry=sy+5.5;
+      let ry=sy+6.5;
       keyDates.forEach(item=>{
         doc.setTextColor(...(labelColorMap[item.labelClass]||purple));
-        doc.setFont('helvetica','bold');doc.setFontSize(7.2);
-        doc.text(item.label.toUpperCase(),sidebarX+4,ry);
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(8.2);
-        doc.text(item.value,sidebarX+4,ry+4);
+        doc.setFont('helvetica','bold');doc.setFontSize(8);
+        doc.text(item.label.toUpperCase(),sidebarX+5,ry);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.text(item.value,sidebarX+5,ry+4.6);
         ry+=rowH;
       });
-      sy+=boxH+4;
+      sy+=boxH+5;
     }
 
     // Official Holidays
@@ -1653,16 +1653,16 @@ async function exportCalendarPDF(){
       sidebarCardHeader('Official Holidays',sidebarW);
       const rowH=holRowH;
       const boxH=sidebarCardBox(holidays.length,rowH,sidebarW);
-      let ry=sy+5.5;
+      let ry=sy+6.5;
       holidays.forEach(item=>{
         doc.setTextColor(...hexToRgb(cssVar('--holiday-color')));
-        doc.setFont('helvetica','bold');doc.setFontSize(7.2);
-        doc.text(item.label,sidebarX+4,ry);
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(8.2);
-        doc.text(item.value,sidebarX+4,ry+4);
+        doc.setFont('helvetica','bold');doc.setFontSize(8);
+        doc.text(item.label,sidebarX+5,ry);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.text(item.value,sidebarX+5,ry+4.6);
         ry+=rowH;
       });
-      sy+=boxH+4;
+      sy+=boxH+5;
     }
 
     // School Hours
@@ -1670,15 +1670,15 @@ async function exportCalendarPDF(){
       sidebarCardHeader('School Hours',sidebarW);
       const rowH=hoursRowH;
       const boxH=sidebarCardBox(hoursRows.length,rowH,sidebarW);
-      let ry=sy+6;
+      let ry=sy+7;
       hoursRows.forEach(r=>{
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(8.2);
-        doc.text(r.day,sidebarX+4,ry);
-        doc.setTextColor(...purple);doc.setFont('helvetica','bold');doc.setFontSize(8.2);
-        doc.text(r.time,sidebarX+sidebarW-4,ry,{align:'right'});
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.text(r.day,sidebarX+5,ry);
+        doc.setTextColor(...purple);doc.setFont('helvetica','bold');doc.setFontSize(9.5);
+        doc.text(r.time,sidebarX+sidebarW-5,ry,{align:'right'});
         ry+=rowH;
       });
-      sy+=boxH+4;
+      sy+=boxH+5;
     }
 
     // Day Types
@@ -1686,16 +1686,16 @@ async function exportCalendarPDF(){
     {
       const rowH=dtRowH;
       const boxH=sidebarCardBox(dayTypeItems.length,rowH,sidebarW);
-      let ry=sy+5.2;
+      let ry=sy+6;
       dayTypeItems.forEach(it=>{
         if(it.ring){
-          doc.setFillColor(...it.rgb);doc.circle(sidebarX+5,ry-1,1.7,'F');
-          doc.setDrawColor(255,255,255);doc.setLineWidth(0.4);doc.circle(sidebarX+5,ry-1,0.9,'S');
+          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2,'F');
+          doc.setDrawColor(255,255,255);doc.setLineWidth(0.45);doc.circle(sidebarX+6,ry-1.2,1.05,'S');
         }else{
-          doc.setFillColor(...it.rgb);doc.circle(sidebarX+5,ry-1,1.7,'F');
+          doc.setFillColor(...it.rgb);doc.circle(sidebarX+6,ry-1.2,2,'F');
         }
-        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(8.2);
-        doc.text(it.label,sidebarX+10,ry);
+        doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+        doc.text(it.label,sidebarX+12,ry);
         ry+=rowH;
       });
       sy+=boxH;
