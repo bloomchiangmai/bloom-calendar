@@ -1445,7 +1445,7 @@ async function exportCalendarPDF(){
     const sidebarW=72,gapMain=5;
     const gridW=contentW-sidebarW-gapMain;
     const sidebarX=contentX+gridW+gapMain;
-    const cols=6,rows=2,colGap=3,rowGap=4;
+    const cols=5,rows=3,colGap=3,rowGap=4;
     const cardW=(gridW-(cols-1)*colGap)/cols;
     const monthHeaderH=8,dowRowH=4;
     const cellW=cardW/7,cellH=cellW;
@@ -1671,8 +1671,13 @@ async function exportCalendarPDF(){
       const boxH=sidebarCardBox(dayTypeItems.length,rowH,sidebarW);
       let ry=sy+4.2;
       dayTypeItems.forEach(it=>{
-        doc.setFillColor(...typeColors[it.t].color);
-        doc.circle(sidebarX+5,ry-1,1.4,'F');
+        const tc=typeColors[it.t];
+        if(tc.ring){
+          doc.setFillColor(...tc.bg);doc.circle(sidebarX+5,ry-1,1.4,'F');
+          doc.setDrawColor(...tc.color);doc.setLineWidth(0.25);doc.circle(sidebarX+5,ry-1,1.4,'S');
+        }else{
+          doc.setFillColor(...tc.color);doc.circle(sidebarX+5,ry-1,1.4,'F');
+        }
         doc.setTextColor(...text);doc.setFont('helvetica','normal');doc.setFontSize(6.8);
         doc.text(it.label,sidebarX+9,ry);
         ry+=rowH;
