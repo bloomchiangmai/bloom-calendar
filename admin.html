@@ -2137,16 +2137,27 @@ async function exportCalendarPDF(){
     const cardH=monthHeaderH+dowRowH+cellH*6;
     const gridBlockH=cardH*rows+rowGap*(rows-1);
 
-    const kdRowH=7.2,holRowH=7.2,hoursRowH=6.5,dtRowH=5.8;
+    let kdRowH=7.2,holRowH=7.2,hoursRowH=6.5,dtRowH=5.8;
     const sidebarCardH=(rowsCount,rowH)=>7+rowsCount*rowH+4;
-    const sidebarTotalH=
+    let sidebarTotalH=
       sidebarCardH(PDF_KEY_DATES.length,kdRowH)+4+
       sidebarCardH(PDF_HOLIDAYS.length,holRowH)+4+
       sidebarCardH(PDF_HOURS.length,hoursRowH)+4+
       sidebarCardH(dayTypeItems.length,dtRowH);
 
+    const totalSidebarRows=PDF_KEY_DATES.length+PDF_HOLIDAYS.length+PDF_HOURS.length+dayTypeItems.length;
+    if(totalSidebarRows>0&&gridBlockH>sidebarTotalH){
+      const delta=(gridBlockH-sidebarTotalH)/totalSidebarRows;
+      kdRowH+=delta;holRowH+=delta;hoursRowH+=delta;dtRowH+=delta;
+      sidebarTotalH=
+        sidebarCardH(PDF_KEY_DATES.length,kdRowH)+4+
+        sidebarCardH(PDF_HOLIDAYS.length,holRowH)+4+
+        sidebarCardH(PDF_HOURS.length,hoursRowH)+4+
+        sidebarCardH(dayTypeItems.length,dtRowH);
+    }
+
     const contentBlockH=Math.max(gridBlockH,sidebarTotalH);
-    const footerH=9;
+    const footerH=10;
     const pageH=gridY+contentBlockH+footerH+margin;
 
     // ---- Create the page at the exact size the content needs ----
@@ -2303,7 +2314,7 @@ async function exportCalendarPDF(){
     // Key Dates
     sidebarCardHeader('Key Dates',sidebarW);
     {
-      const rowH=7.2;
+      const rowH=kdRowH;
       const boxH=sidebarCardBox(PDF_KEY_DATES.length,rowH,sidebarW);
       let ry=sy+4.5;
       PDF_KEY_DATES.forEach(item=>{
@@ -2320,7 +2331,7 @@ async function exportCalendarPDF(){
     // Official Holidays
     sidebarCardHeader('Official Holidays',sidebarW);
     {
-      const rowH=7.2;
+      const rowH=holRowH;
       const boxH=sidebarCardBox(PDF_HOLIDAYS.length,rowH,sidebarW);
       let ry=sy+4.5;
       PDF_HOLIDAYS.forEach(item=>{
@@ -2337,7 +2348,7 @@ async function exportCalendarPDF(){
     // School Hours
     sidebarCardHeader('School Hours',sidebarW);
     {
-      const rowH=6.5;
+      const rowH=hoursRowH;
       const boxH=sidebarCardBox(PDF_HOURS.length,rowH,sidebarW);
       let ry=sy+5;
       PDF_HOURS.forEach(r=>{
@@ -2353,7 +2364,7 @@ async function exportCalendarPDF(){
     // Day Types
     sidebarCardHeader('Day Types',sidebarW);
     {
-      const rowH=5.8;
+      const rowH=dtRowH;
       const boxH=sidebarCardBox(dayTypeItems.length,rowH,sidebarW);
       let ry=sy+4.2;
       dayTypeItems.forEach(it=>{
@@ -2372,7 +2383,7 @@ async function exportCalendarPDF(){
     }
 
     // ---- Footer ----
-    doc.setTextColor(...textMuted);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+    doc.setTextColor(...textMuted);doc.setFont('helvetica','normal');doc.setFontSize(8.5);
     doc.text('\u00A9 '+new Date().getFullYear()+' Bloom Space Hub Calendar \u00B7 Bloom Chiangmai. All rights reserved.',pageW/2,pageH-margin-3,{align:'center'});
 
     doc.save('Bloom-Chiangmai-Academic-Calendar-2026-2027.pdf');
