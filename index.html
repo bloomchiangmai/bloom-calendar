@@ -1464,7 +1464,7 @@ async function exportCalendarPDF(){
     const pageH=gridY+contentBlockH+margin;
 
     // ---- Create the page at the exact size the content needs ----
-    const doc=new jsPDF({unit:'mm',format:[pageW,pageH]});
+    const doc=new jsPDF({orientation:'landscape',unit:'mm',format:[pageW,pageH]});
 
     const purple=hexToRgb(cssVar('--purple'));
     const orange=hexToRgb(cssVar('--orange'));
