@@ -2106,11 +2106,20 @@ async function exportCalendarPDF(){
     // logo element on screen, so fetch the same file the public page uses).
     const logoInfo=await loadImageAsDataURL('assets/logo.png');
 
-    const dayTypeItems=[
-      {label:'School Day',t:'school'},{label:'School Break',t:'break'},
-      {label:'Public Holiday',t:'holiday'},{label:'PD Day',t:'pd'},
-      {label:'School Event',t:'event'},{label:'Early Dismissal',t:'early'}
-    ];
+    // Match public calendar's behavior: only show day types that actually
+    // occur in this year's data, not a fixed list of all possible types.
+    const DAY_TYPE_LABELS={school:'School Day',break:'School Break',pd:'PD Day',holiday:'Public Holiday',event:'School Event',early:'Early Dismissal',closure:'Emergency Closure',makeup:'Make-up Day'};
+    const usedTypes=new Set();
+    CALENDAR_MONTHS.forEach(({year,month})=>{
+      const dim=new Date(year,month+1,0).getDate();
+      for(let d=1;d<=dim;d++){
+        const data=getDayData(year,month,d);
+        if(data&&data.type)usedTypes.add(data.type);
+      }
+    });
+    usedTypes.add('pd');usedTypes.add('event');
+    const dayTypeOrder=['school','break','holiday','pd','event','early','closure','makeup'];
+    const dayTypeItems=dayTypeOrder.filter(t=>usedTypes.has(t)).map(t=>({label:DAY_TYPE_LABELS[t],t}));
 
     // ---- Layout math (pure geometry, no drawing yet) ----
     const headerY=margin,headerH=16;
