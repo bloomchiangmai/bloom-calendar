@@ -1316,7 +1316,7 @@ function renderAdminCalendar(){
     const fd=new Date(year,month,1).getDay();
     const offset=fd===0?6:fd-1;
     const dim=new Date(year,month+1,0).getDate();
-    const trailing=(7-(offset+dim)%7)%7;
+    const trailing=42-offset-dim;
     let html=`<div class="mini-month-hdr" onclick="openAdminMonthZoom(${idx})"><div class="mini-month-name">${MONTH_NAMES[month]}</div><div class="mini-month-yr">${year}</div></div>
     <div class="mini-body"><div class="mini-day-hdrs"><div class="mini-day-hdr">M</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">W</div><div class="mini-day-hdr">T</div><div class="mini-day-hdr">F</div><div class="mini-day-hdr">S</div><div class="mini-day-hdr">S</div></div><div class="mini-days">`;
     for(let i=0;i<offset;i++)html+=`<div class="mini-day empty"></div>`;
@@ -1474,7 +1474,7 @@ function renderVE(){
       const fd=new Date(year,month,1).getDay();
       const offset=fd===0?6:fd-1;
       const dim=new Date(year,month+1,0).getDate();
-      const trailing=(7-(offset+dim)%7)%7;
+      const trailing=42-offset-dim;
       html+=`<div class="ve-month"><div class="ve-month-hdr">${MONTH_NAMES[month]} ${year}</div><div class="ve-month-body">
         <div class="ve-day-hdrs"><div class="ve-day-hdr">M</div><div class="ve-day-hdr">T</div><div class="ve-day-hdr">W</div><div class="ve-day-hdr">T</div><div class="ve-day-hdr">F</div><div class="ve-day-hdr">S</div><div class="ve-day-hdr">S</div></div>
         <div class="ve-days">`;
