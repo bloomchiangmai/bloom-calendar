@@ -2163,11 +2163,20 @@ function saveTermDates(){
   if(!_yearId){alert('No active academic year found — cannot save.');return;}
   _pendingTermDates={t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e};
   const fmt=s=>{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
-  document.getElementById('confirmTermDatesSummary').innerHTML=
-    `<strong>Term 1:</strong> ${fmt(t1s)} – ${fmt(t1e)}<br>`+
-    `<strong>Break 1:</strong> ${fmt(b1s)} – ${fmt(b1e)}<br>`+
-    `<strong>Term 2:</strong> ${fmt(t2s)} – ${fmt(t2e)}<br>`+
-    `<strong>Break 2:</strong> ${fmt(b2s)} – ${fmt(b2e)}`;
+  const toISO=parts=>{const[y,m,d]=parts;return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;};
+  const rows=[
+    {label:'Term 1',oldS:toISO(TERM_DATES.t1Start),oldE:toISO(TERM_DATES.t1End),newS:t1s,newE:t1e},
+    {label:'Break 1',oldS:toISO(TERM_DATES.break1Start),oldE:toISO(TERM_DATES.break1End),newS:b1s,newE:b1e},
+    {label:'Term 2',oldS:toISO(TERM_DATES.t2Start),oldE:toISO(TERM_DATES.t2End),newS:t2s,newE:t2e},
+    {label:'Break 2',oldS:toISO(TERM_DATES.break2Start),oldE:toISO(TERM_DATES.break2End),newS:b2s,newE:b2e}
+  ];
+  const changed=rows.filter(r=>r.oldS!==r.newS||r.oldE!==r.newE);
+  if(changed.length===0){
+    document.getElementById('confirmTermDatesSummary').innerHTML='No changes detected.';
+  }else{
+    document.getElementById('confirmTermDatesSummary').innerHTML=
+      changed.map(r=>`<strong>${r.label}:</strong> ${fmt(r.newS)} – ${fmt(r.newE)}`).join('<br>');
+  }
   closeModal('editTermDatesModal');
   document.getElementById('confirmTermDatesModal').classList.add('open');
 }
