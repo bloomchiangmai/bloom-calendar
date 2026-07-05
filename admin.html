@@ -550,7 +550,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="settings-row" onclick="archiveYear()">
         <div>
           <div class="settings-row-label">Archive & Start New Year</div>
-          <div class="settings-row-sub">Save 2026-2027 and begin fresh setup</div>
+          <div class="settings-row-sub" id="archiveRowSub">Save 2026-2027 and begin fresh setup</div>
+        </div>
+        <span style="color:var(--text-muted);">›</span>
+      </div>
+      <div class="settings-row" onclick="openRestoreYearModal()">
+        <div>
+          <div class="settings-row-label">Restore Archived Year</div>
+          <div class="settings-row-sub" id="restoreRowSub">Loading…</div>
         </div>
         <span style="color:var(--text-muted);">›</span>
       </div>
@@ -778,6 +785,34 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-actions">
       <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal('archiveYearModal')">Cancel</button>
       <button class="btn btn-primary" id="archiveYearConfirmBtn" style="flex:1;justify-content:center;background:#dc2626;border-color:#dc2626;" disabled onclick="confirmArchiveYear()">Archive Year</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="restoreYearListModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Restore Archived Year</div>
+    <div class="modal-sub">Pick a year to make active again</div>
+    <div id="restoreYearList" style="margin:16px 0;display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal('restoreYearListModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="restoreYearConfirmModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Restore Year</div>
+    <div class="modal-sub" id="restoreYearWarning"></div>
+    <div style="margin:16px 0;">
+      <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px;">Type <strong id="restoreYearLabelTarget"></strong> to confirm</label>
+      <input type="text" id="restoreYearConfirmInput" class="form-input" style="width:100%;box-sizing:border-box;" autocomplete="off" oninput="document.getElementById('restoreYearConfirmBtn').disabled=this.value!==_restoreTargetLabel;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal('restoreYearConfirmModal')">Cancel</button>
+      <button class="btn btn-primary" id="restoreYearConfirmBtn" style="flex:1;justify-content:center;" disabled onclick="confirmRestoreYear()">Restore Year</button>
     </div>
   </div>
 </div>
@@ -1931,6 +1966,75 @@ function archiveYear(){
   document.getElementById('archiveYearConfirmBtn').disabled=true;
   document.getElementById('archiveYearModal').classList.add('open');
 }
+async function refreshArchiveSettingsUI(){
+  const archiveSub=document.getElementById('archiveRowSub');
+  const restoreSub=document.getElementById('restoreRowSub');
+  if(archiveSub)archiveSub.textContent=`Save ${_yearLabel||'the current year'} and begin fresh setup`;
+  if(!restoreSub||!_locId)return;
+  try{
+    const{data,error}=await _sb.from('bloom_academic_years').select('id').eq('location_id',_locId).eq('is_active',false).not('archived_at','is',null);
+    if(error)throw error;
+    const n=data?data.length:0;
+    restoreSub.textContent=n===0?'No archived years yet':`${n} archived year${n===1?'':'s'} available`;
+  }catch(e){
+    restoreSub.textContent='Could not load archived years';
+  }
+}
+async function openRestoreYearModal(){
+  const listEl=document.getElementById('restoreYearList');
+  listEl.innerHTML='<div style="color:var(--text-muted);font-size:14px;">Loading…</div>';
+  document.getElementById('restoreYearListModal').classList.add('open');
+  try{
+    const{data,error}=await _sb.from('bloom_academic_years').select('*').eq('location_id',_locId).eq('is_active',false).not('archived_at','is',null).order('archived_at',{ascending:false});
+    if(error)throw error;
+    if(!data||data.length===0){
+      listEl.innerHTML='<div style="color:var(--text-muted);font-size:14px;">No archived years yet.</div>';
+      return;
+    }
+    listEl.innerHTML=data.map(yr=>`
+      <div class="settings-row" style="border:1px solid var(--border);border-radius:10px;margin:0;" onclick="openRestoreConfirm('${yr.id}','${(yr.label||'').replace(/'/g,"\\'")}')">
+        <div>
+          <div class="settings-row-label">${yr.label||'(untitled)'}</div>
+          <div class="settings-row-sub">Archived ${new Date(yr.archived_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</div>
+        </div>
+        <span style="color:var(--text-muted);">›</span>
+      </div>`).join('');
+  }catch(e){
+    listEl.innerHTML='<div style="color:#dc2626;font-size:14px;">Failed to load archived years. Check your connection.</div>';
+  }
+}
+let _restoreTargetId=null,_restoreTargetLabel='';
+function openRestoreConfirm(id,label){
+  _restoreTargetId=id;_restoreTargetLabel=label;
+  closeModal('restoreYearListModal');
+  document.getElementById('restoreYearLabelTarget').textContent=label;
+  document.getElementById('restoreYearWarning').textContent=`This makes ${label} the active year again and archives ${_yearLabel||'the current year'} in its place. The public calendar will immediately switch to showing ${label}.`;
+  document.getElementById('restoreYearConfirmInput').value='';
+  document.getElementById('restoreYearConfirmBtn').disabled=true;
+  document.getElementById('restoreYearConfirmModal').classList.add('open');
+}
+async function confirmRestoreYear(){
+  const input=document.getElementById('restoreYearConfirmInput');
+  if(input.value!==_restoreTargetLabel||!_restoreTargetId)return;
+  const btn=document.getElementById('restoreYearConfirmBtn');
+  btn.disabled=true;btn.textContent='Restoring…';
+  try{
+    // Archive whichever year is currently active before activating the picked one,
+    // so there is never a moment (or a bug) with two active years at once.
+    if(_yearId){
+      const{error:archiveErr}=await _sb.from('bloom_academic_years').update({is_active:false,archived_at:new Date().toISOString()}).eq('id',_yearId);
+      if(archiveErr)throw archiveErr;
+    }
+    const{error:restoreErr}=await _sb.from('bloom_academic_years').update({is_active:true,archived_at:null}).eq('id',_restoreTargetId);
+    if(restoreErr)throw restoreErr;
+    addAuditEntry(`${_restoreTargetLabel} restored as active year (${_yearLabel||'previous year'} archived)`,'Admin');
+    closeModal('restoreYearConfirmModal');
+    location.reload();
+  }catch(e){
+    alert('Failed to restore the year. Please check your connection and try again.');
+    btn.disabled=false;btn.textContent='Restore Year';
+  }
+}
 async function confirmArchiveYear(){
   const input=document.getElementById('archiveYearConfirmInput');
   if(input.value!==_yearLabel)return;
@@ -2144,6 +2248,7 @@ if(localStorage.getItem('bloom_admin')==='true'){
     if(setupDone)localStorage.setItem('bloom_setup_done','true');
     routeAfterAuth(setupDone);
     loadPublicAccessSettings();
+    refreshArchiveSettingsUI();
   });
 }
 // ===== PDF Export (matches public calendar output) =====
