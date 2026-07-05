@@ -748,6 +748,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<!-- CONFIRM TERM DATES MODAL -->
+<div class="modal-overlay" id="confirmTermDatesModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Confirm Term Date Changes</div>
+    <div class="modal-sub">This updates the live calendar for every visitor. Review before confirming.</div>
+    <div id="confirmTermDatesSummary" style="margin:16px 0;font-size:14px;color:var(--text-main);line-height:1.8;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal('confirmTermDatesModal');document.getElementById('editTermDatesModal').classList.add('open');">Back</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="confirmSaveTermDates()">Confirm & Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- MULTI SELECT MODAL -->
 <div class="modal-overlay" id="multiSelectModal">
   <div class="modal">
@@ -2103,7 +2117,9 @@ function openEditTermDatesModal(){
   document.getElementById('editTermDatesModal').classList.add('open');
 }
 
-async function saveTermDates(){
+let _pendingTermDates=null;
+
+function saveTermDates(){
   const t1s=document.getElementById('etdT1Start').value;
   const t1e=document.getElementById('etdT1End').value;
   const t2s=document.getElementById('etdT2Start').value;
@@ -2113,6 +2129,18 @@ async function saveTermDates(){
   if(t2s>=t2e){alert('Term 2 start must be before Term 2 end.');return;}
   if(t1e>=t2s){alert('Term 1 must end before Term 2 starts.');return;}
   if(!_yearId){alert('No active academic year found — cannot save.');return;}
+  _pendingTermDates={t1s,t1e,t2s,t2e};
+  const fmt=s=>{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
+  document.getElementById('confirmTermDatesSummary').innerHTML=
+    `<strong>Term 1:</strong> ${fmt(t1s)} – ${fmt(t1e)}<br>`+
+    `<strong>Term 2:</strong> ${fmt(t2s)} – ${fmt(t2e)}`;
+  closeModal('editTermDatesModal');
+  document.getElementById('confirmTermDatesModal').classList.add('open');
+}
+
+async function confirmSaveTermDates(){
+  if(!_pendingTermDates)return;
+  const{t1s,t1e,t2s,t2e}=_pendingTermDates;
   try{
     const{error}=await _sb.from('bloom_academic_years').update({
       t1_start:t1s,t1_end:t1e,t2_start:t2s,t2_end:t2e
@@ -2125,7 +2153,8 @@ async function saveTermDates(){
     buildCalendarFromTerms();
     calcDays();renderAdminCalendar();
     addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, T2 ${t2s}–${t2e}`,'Admin');
-    closeModal('editTermDatesModal');
+    _pendingTermDates=null;
+    closeModal('confirmTermDatesModal');
   }catch(e){
     console.log('Save term dates failed',e);
     alert('Failed to save term dates. Check your connection and try again.');
