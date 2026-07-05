@@ -566,22 +566,29 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <script>
 window._bloomAuthMode='signin';
 
-// Phase 1 public launch: Notify + Sign In are visible but disabled for
-// everyone except the team, who unlock via ?team=1 once and it sticks on
-// that device (localStorage). Not real security — just a UX gate, since
-// nothing sensitive sits behind these yet.
-(function(){
-  const params=new URLSearchParams(window.location.search);
-  if(params.get('team')==='1'){
-    localStorage.setItem('bloomTeamMode','1');
+// Public feature flags: Notify and Sign In are gated by admin-controlled
+// switches in bloom_settings (Supabase), not a client-side backdoor.
+// Defaults to OFF (both show "coming soon") until settings load or if
+// the fetch fails, so a network hiccup never accidentally unlocks them.
+let _notifyEnabled=false;
+let _signinEnabled=false;
+async function loadPublicAccessFlags(){
+  try{
+    const{data,error}=await _supabase.from('bloom_settings').select('notify_enabled,signin_enabled').eq('location_id',_locationId).maybeSingle();
+    if(error||!data)return;
+    _notifyEnabled=!!data.notify_enabled;
+    _signinEnabled=!!data.signin_enabled;
+  }catch(e){
+    console.log('Failed to load public access flags, defaulting to off',e);
   }
-})();
-function isTeamMode(){return localStorage.getItem('bloomTeamMode')==='1';}
+  applyComingSoonGate();
+}
 function applyComingSoonGate(){
-  if(isTeamMode())return;
-  document.querySelectorAll('.notify-header-btn,#authNavBtn,#navNotify').forEach(el=>{
-    el.classList.add('coming-soon');
+  document.querySelectorAll('.notify-header-btn,#navNotify').forEach(el=>{
+    el.classList.toggle('coming-soon',!_notifyEnabled);
   });
+  const authEl=document.getElementById('authNavBtn');
+  if(authEl)authEl.classList.toggle('coming-soon',!_signinEnabled);
 }
 
 // In-app toast, replaces alert() — no browser chrome, no "site says", no
@@ -620,7 +627,7 @@ function resetViewportPan(){
     if(shell)shell.scrollTop=0;
   },50);
 }
-function openAuthModal(){if(!isTeamMode()){showToast("Sign in is coming soon. We'll let you know when it's ready.");return;}document.getElementById('authOverlay').classList.add('open');}
+function openAuthModal(){if(!_signinEnabled){showToast("Sign in is coming soon. We'll let you know when it's ready.");return;}document.getElementById('authOverlay').classList.add('open');}
 function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');resetViewportPan();}
 function openAccountModal(){document.getElementById('accountOverlay').classList.add('open');}
 function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');resetViewportPan();}
@@ -694,7 +701,7 @@ function selectNotifyReason(val){
 }
 
 async function openNotifyModal(){
-  if(!isTeamMode()){showToast("Notify is coming soon. We'll let you know when it's ready.");return;}
+  if(!_notifyEnabled){showToast("Notify is coming soon. We'll let you know when it's ready.");return;}
   const {data:{session}}=await _supabase.auth.getSession();
   if(!session){openAuthModal();return;}
   document.getElementById('notifyChildName').value='';
@@ -1368,9 +1375,8 @@ async function loadFromSupabase(){
 // Load from Supabase, fall back to localStorage
 loadFromSupabase().then(()=>{
   renderCalendar();calcStats();
+  loadPublicAccessFlags();
 });
-
-applyComingSoonGate();
 
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 

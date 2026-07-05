@@ -508,6 +508,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 
     <div class="settings-group">
+      <div class="settings-group-title">Public Site Access</div>
+      <div class="toggle-wrap">
+        <div class="toggle-info">
+          <div class="toggle-label">Notify (Absence Reporting)</div>
+          <div class="toggle-sub" id="notifyEnabledSub">Loading…</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="toggleNotifyEnabled" onchange="togglePublicAccess('notify')">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-wrap">
+        <div class="toggle-info">
+          <div class="toggle-label">Sign In</div>
+          <div class="toggle-sub" id="signinEnabledSub">Loading…</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="toggleSigninEnabled" onchange="togglePublicAccess('signin')">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="settings-group">
       <div class="settings-group-title">Academic Year</div>
       <div class="settings-row" onclick="syncToCloud()" id="syncCloudBtn">
         <div>
@@ -1215,6 +1239,43 @@ function toggleSetting(key){
   localStorage.setItem('bloom_cal_settings',JSON.stringify(settings));
   loadSettings();
   addAuditEntry(`${key==='live'?'Calendar status':'Approval required'} set to ${settings[key]?'ON':'OFF'}`,'Admin');
+}
+
+// ── PUBLIC SITE ACCESS (Notify / Sign In toggles, Supabase-backed) ──
+let _publicAccessSettingsId=null;
+async function loadPublicAccessSettings(){
+  try{
+    const{data,error}=await _sb.from('bloom_settings').select('*').eq('location_id',_locId).maybeSingle();
+    if(error||!data){
+      document.getElementById('notifyEnabledSub').textContent='Could not load — check connection';
+      document.getElementById('signinEnabledSub').textContent='Could not load — check connection';
+      return;
+    }
+    _publicAccessSettingsId=data.id;
+    document.getElementById('toggleNotifyEnabled').checked=!!data.notify_enabled;
+    document.getElementById('toggleSigninEnabled').checked=!!data.signin_enabled;
+    document.getElementById('notifyEnabledSub').textContent=data.notify_enabled?'Live — parents can report absences':'Off — parents see "coming soon"';
+    document.getElementById('signinEnabledSub').textContent=data.signin_enabled?'Live — parents can create accounts and sign in':'Off — parents see "coming soon"';
+  }catch(e){
+    console.log('Failed to load public access settings',e);
+  }
+}
+async function togglePublicAccess(key){
+  const checkbox=document.getElementById(key==='notify'?'toggleNotifyEnabled':'toggleSigninEnabled');
+  const sub=document.getElementById(key==='notify'?'notifyEnabledSub':'signinEnabledSub');
+  const newValue=checkbox.checked;
+  const column=key==='notify'?'notify_enabled':'signin_enabled';
+  try{
+    const{error}=await _sb.from('bloom_settings').update({[column]:newValue,updated_at:new Date().toISOString()}).eq('location_id',_locId);
+    if(error)throw error;
+    sub.textContent=newValue
+      ?(key==='notify'?'Live — parents can report absences':'Live — parents can create accounts and sign in')
+      :'Off — parents see "coming soon"';
+    addAuditEntry(`Public ${key==='notify'?'Notify':'Sign In'} set to ${newValue?'ON':'OFF'}`,'Admin');
+  }catch(e){
+    checkbox.checked=!newValue;
+    alert('Failed to update setting. Please check your connection and try again.');
+  }
 }
 
 // ── DAY COUNT ────────────────────────────────────────────────────
@@ -2048,6 +2109,7 @@ if(localStorage.getItem('bloom_admin')==='true'){
     const setupDone=localStorage.getItem('bloom_setup_done')||!!_yearId;
     if(setupDone)localStorage.setItem('bloom_setup_done','true');
     routeAfterAuth(setupDone);
+    loadPublicAccessSettings();
   });
 }
 // ===== PDF Export (matches public calendar output) =====
