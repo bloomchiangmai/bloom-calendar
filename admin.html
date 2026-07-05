@@ -658,11 +658,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <label class="form-label">Change to</label>
       <select class="form-select" id="crType">
         <option value="school">School Day</option>
-        <option value="early">Early Dismissal</option>
-        <option value="event">School Event</option>
-        <option value="pd">PD Day</option>
-        <option value="holiday">Public Holiday</option>
         <option value="break">School Break</option>
+        <option value="holiday">Public Holiday</option>
+        <option value="pd">PD Day</option>
+        <option value="event">School Event</option>
+        <option value="early">Early Dismissal</option>
         <option value="closure">Emergency Closure</option>
         <option value="makeup">Make-up Day</option>
         <option value="none">Remove (no school)</option>
@@ -700,12 +700,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="form-group">
       <label class="form-label">Type</label>
       <select class="form-select" id="eventType">
-        <option value="event">School Event</option>
-        <option value="early">Early Dismissal</option>
-        <option value="makeup">Make-up Day</option>
-        <option value="closure">Emergency Closure</option>
         <option value="holiday">Public Holiday</option>
         <option value="pd">PD Day</option>
+        <option value="event">School Event</option>
+        <option value="early">Early Dismissal</option>
+        <option value="closure">Emergency Closure</option>
+        <option value="makeup">Make-up Day</option>
       </select>
     </div>
     <div class="form-group">
@@ -1762,6 +1762,7 @@ function closeVE(){document.getElementById('veOverlay').classList.remove('open')
 function openAddEvent(){
   document.getElementById('eventDate').value='';
   document.getElementById('eventName').value='';
+  document.getElementById('eventType').value='event';
   document.getElementById('eventReason').value='';
   document.getElementById('addEventModal').classList.add('open');
 }
