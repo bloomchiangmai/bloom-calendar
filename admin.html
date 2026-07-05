@@ -2416,16 +2416,24 @@ function loadImageAsDataURL(src){
     img.src=src;
   });
 }
-// NOTE: Key Dates / Official Holidays / School Hours are hardcoded here to match
-// the same static text on the public calendar's index.html. Public calendar does
-// not query these live either. If term dates or holidays change, update BOTH
-// index.html and this block, or the two PDFs will silently drift apart.
-const PDF_KEY_DATES=[
-  {label:'TERM 1',labelClass:'term',value:'31 Aug \u2013 18 Dec 2026'},
-  {label:'BREAK',labelClass:'break',value:'26 Oct \u2013 30 Oct 2026'},
-  {label:'TERM 2',labelClass:'term',value:'4 Jan \u2013 29 Jun 2027'},
-  {label:'BREAK',labelClass:'break',value:'22 Mar \u2013 15 Apr 2027'}
-];
+// Key Dates for the PDF are now built live from TERM_DATES at export time
+// (see getPdfKeyDates below), so they can never drift from what's on screen.
+// Official Holidays and School Hours are still hardcoded — same tradeoff as
+// index.html — since neither is editable from admin yet.
+function fmtPdfDateRange(startParts,endParts){
+  const abbr=m=>MONTH_NAMES[m].slice(0,3);
+  const[sy,sm,sd_]=startParts,[ey,em,ed_]=endParts;
+  return`${sd_} ${abbr(sm)} \u2013 ${ed_} ${abbr(em)} ${ey}`;
+}
+function getPdfKeyDates(){
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
+  return[
+    {label:'TERM 1',labelClass:'term',value:fmtPdfDateRange(t1Start,t1End)},
+    {label:'BREAK',labelClass:'break',value:fmtPdfDateRange(break1Start,break1End)},
+    {label:'TERM 2',labelClass:'term',value:fmtPdfDateRange(t2Start,t2End)},
+    {label:'BREAK',labelClass:'break',value:fmtPdfDateRange(break2Start,break2End)}
+  ];
+}
 const PDF_HOLIDAYS=[
   {label:'13 OCT 2026',value:'HM King Bhumibol Memorial Day'},
   {label:'20 MAY 2027',value:'Visakha Bucha Day'}
@@ -2440,6 +2448,7 @@ async function exportCalendarPDF(){
   try{
     if(typeof window.jspdf==='undefined'){alert('PDF library failed to load. Check your connection and try again.');return;}
     btn.textContent='Generating\u2026';btn.disabled=true;
+    const PDF_KEY_DATES=getPdfKeyDates();
 
     const{jsPDF}=window.jspdf;
     const pageW=420,margin=10;
