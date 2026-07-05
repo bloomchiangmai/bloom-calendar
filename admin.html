@@ -766,6 +766,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 
+<div class="modal-overlay" id="archiveYearModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Archive & Start New Year</div>
+    <div class="modal-sub" id="archiveYearWarning">This permanently ends the current academic year setup and starts a new one. Past calendar data stays in the database, but this cannot be undone from here.</div>
+    <div style="margin:16px 0;">
+      <label style="display:block;font-size:13px;color:var(--text-muted);margin-bottom:6px;">Type <strong id="archiveYearLabelTarget"></strong> to confirm</label>
+      <input type="text" id="archiveYearConfirmInput" class="form-input" style="width:100%;box-sizing:border-box;" autocomplete="off" oninput="document.getElementById('archiveYearConfirmBtn').disabled=this.value!==_yearLabel;">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1;justify-content:center;" onclick="closeModal('archiveYearModal')">Cancel</button>
+      <button class="btn btn-primary" id="archiveYearConfirmBtn" style="flex:1;justify-content:center;background:#dc2626;border-color:#dc2626;" disabled onclick="confirmArchiveYear()">Archive Year</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 // ── CONSTANTS ────────────────────────────────────────────────────
 const ADMIN_PW = 'bcmbcm';
@@ -1908,18 +1925,34 @@ async function syncToCloud(){
 }
 
 function archiveYear(){
-  const confirm1=confirm('Archive 2026-2027 and start a new academic year?\n\nThe current calendar will be saved as read-only.');
-  if(!confirm1)return;
-  const archives=JSON.parse(localStorage.getItem('bloom_cal_archives')||'[]');
-  archives.push({year:'2026-2027',data:overrides,archivedAt:new Date().toISOString()});
-  localStorage.setItem('bloom_cal_archives',JSON.stringify(archives));
-  localStorage.removeItem('bloom_setup_done');
-  localStorage.removeItem('bloom_cal_overrides');
-  localStorage.removeItem('bloom_cal_pending');
-  overrides={};pendingChanges=[];
-  addAuditEntry('2026-2027 archived, new setup started','Admin');
-  document.getElementById('app').classList.remove('visible');
-  showOnboarding();
+  document.getElementById('archiveYearLabelTarget').textContent=_yearLabel||'the current year';
+  document.getElementById('archiveYearWarning').textContent=`This permanently ends ${_yearLabel||'the current'} academic year setup and starts a new one. Past calendar data stays in the database and remains visible in reports, but this cannot be undone from here.`;
+  document.getElementById('archiveYearConfirmInput').value='';
+  document.getElementById('archiveYearConfirmBtn').disabled=true;
+  document.getElementById('archiveYearModal').classList.add('open');
+}
+async function confirmArchiveYear(){
+  const input=document.getElementById('archiveYearConfirmInput');
+  if(input.value!==_yearLabel)return;
+  const btn=document.getElementById('archiveYearConfirmBtn');
+  btn.disabled=true;btn.textContent='Archiving…';
+  try{
+    if(_yearId){
+      const{error}=await _sb.from('bloom_academic_years').update({is_active:false,archived_at:new Date().toISOString()}).eq('id',_yearId);
+      if(error)throw error;
+    }
+    localStorage.removeItem('bloom_setup_done');
+    localStorage.removeItem('bloom_cal_overrides');
+    localStorage.removeItem('bloom_cal_pending');
+    overrides={};pendingChanges=[];
+    addAuditEntry(`${_yearLabel||'Academic year'} archived, new setup started`,'Admin');
+    closeModal('archiveYearModal');
+    document.getElementById('app').classList.remove('visible');
+    showOnboarding();
+  }catch(e){
+    alert('Failed to archive the year. Please check your connection and try again.');
+    btn.disabled=false;btn.textContent='Archive Year';
+  }
 }
 
 // ── SETTINGS ─────────────────────────────────────────────────────
@@ -1970,7 +2003,7 @@ document.getElementById('loginPw').addEventListener('keydown',e=>{if(e.key==='En
 const SB_URL='https://ndlcfgkhxjoancdvmgmr.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
 const _sb=window.supabase.createClient(SB_URL,SB_KEY);
-let _locId=null,_yearId=null;
+let _locId=null,_yearId=null,_yearLabel='';
 let unsyncedQueue=JSON.parse(localStorage.getItem('bloom_cal_unsynced')||'[]');
 
 // Realtime: new absence reports show up in the badge instantly instead of
@@ -2015,6 +2048,7 @@ async function sbInit(){
       const{data:yr}=await _sb.from('bloom_academic_years').select('*').eq('location_id',_locId).eq('is_active',true).maybeSingle();
       if(yr){
         _yearId=yr.id;
+        _yearLabel=yr.label||'';
         if(yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
           TERM_DATES={
             t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
