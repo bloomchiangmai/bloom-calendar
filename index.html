@@ -302,9 +302,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="sidebar-header"><div class="sidebar-title">Key Dates</div></div>
       <div class="sidebar-body">
         <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value" id="kdT1Desktop">31 Aug – 18 Dec 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 Oct – 30 Oct 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value" id="kdB1Desktop">26 Oct – 30 Oct 2026</span></div>
         <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value" id="kdT2Desktop">4 Jan – 29 Jun 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value" id="kdB2Desktop">22 Mar – 15 Apr 2027</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -370,9 +370,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="sidebar-header"><div class="sidebar-title">Key Dates</div></div>
       <div class="sidebar-body">
         <div class="key-date-item"><span class="key-date-label term">Term 1</span><span class="key-date-value" id="kdT1Mobile">31 Aug – 18 Dec 2026</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">26 Oct – 30 Oct 2026</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value" id="kdB1Mobile">26 Oct – 30 Oct 2026</span></div>
         <div class="key-date-item"><span class="key-date-label term">Term 2</span><span class="key-date-value" id="kdT2Mobile">4 Jan – 29 Jun 2027</span></div>
-        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value">22 Mar – 15 Apr 2027</span></div>
+        <div class="key-date-item"><span class="key-date-label break">Break</span><span class="key-date-value" id="kdB2Mobile">22 Mar – 15 Apr 2027</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -881,7 +881,11 @@ function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padSta
 
 // Fallback term dates, used only if the bloom_academic_years fetch hasn't
 // resolved yet or fails. Overwritten by real data in loadFromSupabase().
-let TERM_DATES={t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29]};
+let TERM_DATES={
+  t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29],
+  break1Start:[2026,9,26],break1End:[2026,9,30],
+  break2Start:[2027,2,22],break2End:[2027,3,15]
+};
 
 const MONTH_ABBR=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function fmtKeyDateRange(startParts,endParts){
@@ -889,22 +893,26 @@ function fmtKeyDateRange(startParts,endParts){
   return`${sd_} ${MONTH_ABBR[sm]} – ${ed_} ${MONTH_ABBR[em]} ${ey}`;
 }
 function updateKeyDatesSidebar(){
-  const{t1Start,t1End,t2Start,t2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
   const t1Text=fmtKeyDateRange(t1Start,t1End);
   const t2Text=fmtKeyDateRange(t2Start,t2End);
+  const b1Text=fmtKeyDateRange(break1Start,break1End);
+  const b2Text=fmtKeyDateRange(break2Start,break2End);
   ['kdT1Desktop','kdT1Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t1Text;});
   ['kdT2Desktop','kdT2Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t2Text;});
+  ['kdB1Desktop','kdB1Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=b1Text;});
+  ['kdB2Desktop','kdB2Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=b2Text;});
 }
 
 function buildCalendarFromTerms(){
   BASE={};
-  const{t1Start,t1End,t2Start,t2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
   updateKeyDatesSidebar();
   sr(...t1Start,...t1End,'school');
-  sr(2026,9,26,2026,9,30,'break','School Break');
+  sr(...break1Start,...break1End,'break','School Break');
   sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
   sr(...t2Start,...t2End,'school');
-  sr(2027,2,22,2027,3,15,'break','School Break');
+  sr(...break2Start,...break2End,'break','School Break');
   sd(2027,4,20,'holiday','Visakha Bucha Day');
   ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
@@ -1370,7 +1378,11 @@ async function loadFromSupabase(){
     if(yr&&yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
       TERM_DATES={
         t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
-        t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end)
+        t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end),
+        break1Start:yr.break1_start?parseDateParts(yr.break1_start):TERM_DATES.break1Start,
+        break1End:yr.break1_end?parseDateParts(yr.break1_end):TERM_DATES.break1End,
+        break2Start:yr.break2_start?parseDateParts(yr.break2_start):TERM_DATES.break2Start,
+        break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End
       };
       buildCalendarFromTerms();
     }

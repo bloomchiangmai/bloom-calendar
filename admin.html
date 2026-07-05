@@ -724,7 +724,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Edit Term Dates</div>
-    <div class="modal-sub">Updates term start/end only. Does not touch breaks, holidays, or any existing calendar events.</div>
+    <div class="modal-sub">Updates term and break dates. Does not touch holidays or any existing calendar events.</div>
     <div class="form-group">
       <label class="form-label">Term 1 Start</label>
       <input type="date" class="form-input" id="etdT1Start">
@@ -734,12 +734,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <input type="date" class="form-input" id="etdT1End">
     </div>
     <div class="form-group">
+      <label class="form-label">Break 1 Start</label>
+      <input type="date" class="form-input" id="etdBreak1Start">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Break 1 End</label>
+      <input type="date" class="form-input" id="etdBreak1End">
+    </div>
+    <div class="form-group">
       <label class="form-label">Term 2 Start</label>
       <input type="date" class="form-input" id="etdT2Start">
     </div>
     <div class="form-group">
       <label class="form-label">Term 2 End</label>
       <input type="date" class="form-input" id="etdT2End">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Break 2 Start</label>
+      <input type="date" class="form-input" id="etdBreak2Start">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Break 2 End</label>
+      <input type="date" class="form-input" id="etdBreak2End">
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('editTermDatesModal')">Cancel</button>
@@ -888,7 +904,11 @@ function sd(y,m,d,type,label=''){BASE[dk(y,m,d)]={type,label};}
 
 // Fallback term dates, used only if the bloom_academic_years fetch hasn't
 // resolved yet or fails. Overwritten by real data once the app loads.
-let TERM_DATES={t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29]};
+let TERM_DATES={
+  t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29],
+  break1Start:[2026,9,26],break1End:[2026,9,30],
+  break2Start:[2027,2,22],break2End:[2027,3,15]
+};
 
 function parseDateParts(s){
   const[y,m,d]=s.split('-').map(Number);
@@ -897,12 +917,12 @@ function parseDateParts(s){
 
 function buildCalendarFromTerms(){
   BASE={};
-  const{t1Start,t1End,t2Start,t2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
   sr(...t1Start,...t1End,'school');
-  sr(2026,9,26,2026,9,30,'break','School Break');
+  sr(...break1Start,...break1End,'break','School Break');
   sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
   sr(...t2Start,...t2End,'school');
-  sr(2027,2,22,2027,3,15,'break','School Break');
+  sr(...break2Start,...break2End,'break','School Break');
   sd(2027,4,20,'holiday','Visakha Bucha Day');
   ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
@@ -2112,8 +2132,12 @@ function partsToInputValue(parts){
 function openEditTermDatesModal(){
   document.getElementById('etdT1Start').value=partsToInputValue(TERM_DATES.t1Start);
   document.getElementById('etdT1End').value=partsToInputValue(TERM_DATES.t1End);
+  document.getElementById('etdBreak1Start').value=partsToInputValue(TERM_DATES.break1Start);
+  document.getElementById('etdBreak1End').value=partsToInputValue(TERM_DATES.break1End);
   document.getElementById('etdT2Start').value=partsToInputValue(TERM_DATES.t2Start);
   document.getElementById('etdT2End').value=partsToInputValue(TERM_DATES.t2End);
+  document.getElementById('etdBreak2Start').value=partsToInputValue(TERM_DATES.break2Start);
+  document.getElementById('etdBreak2End').value=partsToInputValue(TERM_DATES.break2End);
   document.getElementById('editTermDatesModal').classList.add('open');
 }
 
@@ -2122,37 +2146,50 @@ let _pendingTermDates=null;
 function saveTermDates(){
   const t1s=document.getElementById('etdT1Start').value;
   const t1e=document.getElementById('etdT1End').value;
+  const b1s=document.getElementById('etdBreak1Start').value;
+  const b1e=document.getElementById('etdBreak1End').value;
   const t2s=document.getElementById('etdT2Start').value;
   const t2e=document.getElementById('etdT2End').value;
-  if(!t1s||!t1e||!t2s||!t2e){alert('All four dates are required.');return;}
+  const b2s=document.getElementById('etdBreak2Start').value;
+  const b2e=document.getElementById('etdBreak2End').value;
+  if(!t1s||!t1e||!t2s||!t2e||!b1s||!b1e||!b2s||!b2e){alert('All dates are required.');return;}
   if(t1s>=t1e){alert('Term 1 start must be before Term 1 end.');return;}
   if(t2s>=t2e){alert('Term 2 start must be before Term 2 end.');return;}
   if(t1e>=t2s){alert('Term 1 must end before Term 2 starts.');return;}
+  if(b1s>=b1e){alert('Break 1 start must be before Break 1 end.');return;}
+  if(b2s>=b2e){alert('Break 2 start must be before Break 2 end.');return;}
+  if(b1s<t1s||b1e>t1e){alert('Break 1 should fall within Term 1 dates.');return;}
+  if(b2s<t2s||b2e>t2e){alert('Break 2 should fall within Term 2 dates.');return;}
   if(!_yearId){alert('No active academic year found — cannot save.');return;}
-  _pendingTermDates={t1s,t1e,t2s,t2e};
+  _pendingTermDates={t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e};
   const fmt=s=>{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
   document.getElementById('confirmTermDatesSummary').innerHTML=
     `<strong>Term 1:</strong> ${fmt(t1s)} – ${fmt(t1e)}<br>`+
-    `<strong>Term 2:</strong> ${fmt(t2s)} – ${fmt(t2e)}`;
+    `<strong>Break 1:</strong> ${fmt(b1s)} – ${fmt(b1e)}<br>`+
+    `<strong>Term 2:</strong> ${fmt(t2s)} – ${fmt(t2e)}<br>`+
+    `<strong>Break 2:</strong> ${fmt(b2s)} – ${fmt(b2e)}`;
   closeModal('editTermDatesModal');
   document.getElementById('confirmTermDatesModal').classList.add('open');
 }
 
 async function confirmSaveTermDates(){
   if(!_pendingTermDates)return;
-  const{t1s,t1e,t2s,t2e}=_pendingTermDates;
+  const{t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e}=_pendingTermDates;
   try{
     const{error}=await _sb.from('bloom_academic_years').update({
-      t1_start:t1s,t1_end:t1e,t2_start:t2s,t2_end:t2e
+      t1_start:t1s,t1_end:t1e,t2_start:t2s,t2_end:t2e,
+      break1_start:b1s,break1_end:b1e,break2_start:b2s,break2_end:b2e
     }).eq('id',_yearId);
     if(error)throw error;
     TERM_DATES={
       t1Start:parseDateParts(t1s),t1End:parseDateParts(t1e),
-      t2Start:parseDateParts(t2s),t2End:parseDateParts(t2e)
+      t2Start:parseDateParts(t2s),t2End:parseDateParts(t2e),
+      break1Start:parseDateParts(b1s),break1End:parseDateParts(b1e),
+      break2Start:parseDateParts(b2s),break2End:parseDateParts(b2e)
     };
     buildCalendarFromTerms();
     calcDays();renderAdminCalendar();
-    addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, T2 ${t2s}–${t2e}`,'Admin');
+    addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, Break1 ${b1s}–${b1e}, T2 ${t2s}–${t2e}, Break2 ${b2s}–${b2e}`,'Admin');
     _pendingTermDates=null;
     closeModal('confirmTermDatesModal');
   }catch(e){
@@ -2257,7 +2294,11 @@ async function sbInit(){
         if(yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
           TERM_DATES={
             t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
-            t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end)
+            t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end),
+            break1Start:yr.break1_start?parseDateParts(yr.break1_start):TERM_DATES.break1Start,
+            break1End:yr.break1_end?parseDateParts(yr.break1_end):TERM_DATES.break1End,
+            break2Start:yr.break2_start?parseDateParts(yr.break2_start):TERM_DATES.break2Start,
+            break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End
           };
           buildCalendarFromTerms();
         }
