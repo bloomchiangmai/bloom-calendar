@@ -317,8 +317,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
       <div class="sidebar-body">
-        <div class="hours-row"><span class="hours-day">Mon, Tue, Thu, Fri</span><span class="hours-time">08:30 – 15:30</span></div>
-        <div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time">08:30 – 13:30</span></div>
+        <div class="hours-row"><span class="hours-day" id="hoursRegularDayDesktop">Mon, Tue, Thu, Fri</span><span class="hours-time" id="hoursRegularTimeDesktop">08:30 – 15:30</span></div>
+        <div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time" id="hoursWedTimeDesktop">08:30 – 13:30</span></div>
       </div>
     </div>
     <div class="sidebar-card">
@@ -384,7 +384,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">School Hours</div></div>
-      <div class="sidebar-body"><div class="hours-row"><span class="hours-day">Mon, Tue, Thu, Fri</span><span class="hours-time">08:30 – 15:30</span></div><div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time">08:30 – 13:30</span></div></div>
+      <div class="sidebar-body"><div class="hours-row"><span class="hours-day" id="hoursRegularDayMobile">Mon, Tue, Thu, Fri</span><span class="hours-time" id="hoursRegularTimeMobile">08:30 – 15:30</span></div><div class="hours-row"><span class="hours-day">Wed</span><span class="hours-time" id="hoursWedTimeMobile">08:30 – 13:30</span></div></div>
     </div>
     <div class="sidebar-card">
       <div class="sidebar-header"><div class="sidebar-title">Day Types</div></div>
@@ -884,7 +884,9 @@ function dk(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padSta
 let TERM_DATES={
   t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29],
   break1Start:[2026,9,26],break1End:[2026,9,30],
-  break2Start:[2027,2,22],break2End:[2027,3,15]
+  break2Start:[2027,2,22],break2End:[2027,3,15],
+  hoursRegularStart:'08:30',hoursRegularEnd:'15:30',hoursRegularDays:'Mon, Tue, Thu, Fri',
+  hoursWedStart:'08:30',hoursWedEnd:'13:30'
 };
 
 const MONTH_ABBR=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -893,7 +895,8 @@ function fmtKeyDateRange(startParts,endParts){
   return`${sd_} ${MONTH_ABBR[sm]} – ${ed_} ${MONTH_ABBR[em]} ${ey}`;
 }
 function updateKeyDatesSidebar(){
-  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End,
+    hoursRegularStart,hoursRegularEnd,hoursRegularDays,hoursWedStart,hoursWedEnd}=TERM_DATES;
   const t1Text=fmtKeyDateRange(t1Start,t1End);
   const t2Text=fmtKeyDateRange(t2Start,t2End);
   const b1Text=fmtKeyDateRange(break1Start,break1End);
@@ -902,11 +905,14 @@ function updateKeyDatesSidebar(){
   ['kdT2Desktop','kdT2Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=t2Text;});
   ['kdB1Desktop','kdB1Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=b1Text;});
   ['kdB2Desktop','kdB2Mobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=b2Text;});
+  ['hoursRegularDayDesktop','hoursRegularDayMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=hoursRegularDays;});
+  ['hoursRegularTimeDesktop','hoursRegularTimeMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=`${hoursRegularStart} – ${hoursRegularEnd}`;});
+  ['hoursWedTimeDesktop','hoursWedTimeMobile'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=`${hoursWedStart} – ${hoursWedEnd}`;});
 }
 
 function buildCalendarFromTerms(){
   BASE={};
-  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End,hoursWedEnd}=TERM_DATES;
   updateKeyDatesSidebar();
   sr(...t1Start,...t1End,'school');
   sr(...break1Start,...break1End,'break','School Break');
@@ -917,7 +923,7 @@ function buildCalendarFromTerms(){
   ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
   // Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
-  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:`Early Dismissal – ${hoursWedEnd}`};}});
 
   YEAR_START=new Date(...t1Start);
   TERM1_END=new Date(...t1End);
@@ -1226,7 +1232,7 @@ function openPopup(y,m,d){
   }
   else{badge.textContent='No school';badge.style.background='#f3f4f6';badge.style.color='#6b7280';badge.style.boxShadow='none';}
   let info='';
-  if(type==='school')info='School hours: 08:30 – 15:30';
+  if(type==='school')info=`School hours: ${TERM_DATES.hoursRegularStart} – ${TERM_DATES.hoursRegularEnd}`;
   else if(data&&data.label)info=data.label;
   document.getElementById('popupInfo').textContent=info;
   document.getElementById('popupOverlay').classList.add('open');
@@ -1376,13 +1382,19 @@ async function loadFromSupabase(){
     // (MONTHS/YEAR_START/YEAR_END/BASE) from them instead of the hardcoded fallback.
     const{data:yr}=await _supabase.from('bloom_academic_years').select('*').eq('location_id',_locationId).eq('is_active',true).maybeSingle();
     if(yr&&yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
+      const trimTime=t=>t?t.slice(0,5):null;
       TERM_DATES={
         t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
         t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end),
         break1Start:yr.break1_start?parseDateParts(yr.break1_start):TERM_DATES.break1Start,
         break1End:yr.break1_end?parseDateParts(yr.break1_end):TERM_DATES.break1End,
         break2Start:yr.break2_start?parseDateParts(yr.break2_start):TERM_DATES.break2Start,
-        break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End
+        break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End,
+        hoursRegularStart:trimTime(yr.hours_regular_start)||TERM_DATES.hoursRegularStart,
+        hoursRegularEnd:trimTime(yr.hours_regular_end)||TERM_DATES.hoursRegularEnd,
+        hoursRegularDays:yr.hours_regular_days||TERM_DATES.hoursRegularDays,
+        hoursWedStart:trimTime(yr.hours_wed_start)||TERM_DATES.hoursWedStart,
+        hoursWedEnd:trimTime(yr.hours_wed_end)||TERM_DATES.hoursWedEnd
       };
       buildCalendarFromTerms();
     }

@@ -757,6 +757,30 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <label class="form-label">Break 2 End</label>
       <input type="date" class="form-input" id="etdBreak2End">
     </div>
+    <div style="border-top:1px solid var(--border);margin:16px 0;padding-top:12px;">
+      <div class="modal-sub" style="margin-bottom:12px;">School Hours</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Regular Days (label)</label>
+      <input type="text" class="form-input" id="etdHoursRegularDays" placeholder="e.g. Mon, Tue, Thu, Fri">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Regular Start</label>
+      <input type="time" class="form-input" id="etdHoursRegularStart">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Regular End</label>
+      <input type="time" class="form-input" id="etdHoursRegularEnd">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Wednesday Start</label>
+      <input type="time" class="form-input" id="etdHoursWedStart">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Wednesday End</label>
+      <input type="time" class="form-input" id="etdHoursWedEnd">
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Also sets the time shown on every Wednesday Early Dismissal label.</div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('editTermDatesModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveTermDates()">Save</button>
@@ -907,7 +931,9 @@ function sd(y,m,d,type,label=''){BASE[dk(y,m,d)]={type,label};}
 let TERM_DATES={
   t1Start:[2026,7,31],t1End:[2026,11,18],t2Start:[2027,0,4],t2End:[2027,5,29],
   break1Start:[2026,9,26],break1End:[2026,9,30],
-  break2Start:[2027,2,22],break2End:[2027,3,15]
+  break2Start:[2027,2,22],break2End:[2027,3,15],
+  hoursRegularStart:'08:30',hoursRegularEnd:'15:30',hoursRegularDays:'Mon, Tue, Thu, Fri',
+  hoursWedStart:'08:30',hoursWedEnd:'13:30'
 };
 
 function parseDateParts(s){
@@ -917,7 +943,7 @@ function parseDateParts(s){
 
 function buildCalendarFromTerms(){
   BASE={};
-  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End}=TERM_DATES;
+  const{t1Start,t1End,t2Start,t2End,break1Start,break1End,break2Start,break2End,hoursWedEnd}=TERM_DATES;
   sr(...t1Start,...t1End,'school');
   sr(...break1Start,...break1End,'break','School Break');
   sd(2026,9,13,'holiday','HM King Bhumibol Memorial Day');
@@ -927,7 +953,7 @@ function buildCalendarFromTerms(){
   ['2027-01-01','2027-01-02','2027-01-03'].forEach(k=>delete BASE[k]);
   Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'){const dow=new Date(k).getDay();if(dow===0||dow===6)delete BASE[k];}});
   // Early Dismissal: every Wednesday that's still a regular school day (skips break/holiday weeks automatically)
-  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:'Early Dismissal – 13:30'};}});
+  Object.keys(BASE).forEach(k=>{if(BASE[k].type==='school'&&new Date(k).getDay()===3){BASE[k]={type:'early',label:`Early Dismissal – ${hoursWedEnd}`};}});
 
   YEAR_START=new Date(...t1Start);
   TERM1_END=new Date(...t1End);
@@ -1304,7 +1330,7 @@ async function finishSetup(){
   // Early Dismissal: every Wednesday still marked 'school' after breaks/holidays applied
   Object.keys(newOverrides).forEach(k=>{
     if(newOverrides[k].type==='school'&&new Date(k).getDay()===3){
-      newOverrides[k]={type:'early',label:'Early Dismissal – 13:30'};
+      newOverrides[k]={type:'early',label:`Early Dismissal – ${TERM_DATES.hoursWedEnd}`};
     }
   });
 
@@ -2139,6 +2165,11 @@ function openEditTermDatesModal(){
   document.getElementById('etdT2End').value=partsToInputValue(TERM_DATES.t2End);
   document.getElementById('etdBreak2Start').value=partsToInputValue(TERM_DATES.break2Start);
   document.getElementById('etdBreak2End').value=partsToInputValue(TERM_DATES.break2End);
+  document.getElementById('etdHoursRegularDays').value=TERM_DATES.hoursRegularDays;
+  document.getElementById('etdHoursRegularStart').value=TERM_DATES.hoursRegularStart;
+  document.getElementById('etdHoursRegularEnd').value=TERM_DATES.hoursRegularEnd;
+  document.getElementById('etdHoursWedStart').value=TERM_DATES.hoursWedStart;
+  document.getElementById('etdHoursWedEnd').value=TERM_DATES.hoursWedEnd;
   document.getElementById('editTermDatesModal').classList.add('open');
 }
 
@@ -2153,7 +2184,13 @@ function saveTermDates(){
   const t2e=document.getElementById('etdT2End').value;
   const b2s=document.getElementById('etdBreak2Start').value;
   const b2e=document.getElementById('etdBreak2End').value;
+  const hDays=document.getElementById('etdHoursRegularDays').value.trim();
+  const hRs=document.getElementById('etdHoursRegularStart').value;
+  const hRe=document.getElementById('etdHoursRegularEnd').value;
+  const hWs=document.getElementById('etdHoursWedStart').value;
+  const hWe=document.getElementById('etdHoursWedEnd').value;
   if(!t1s||!t1e||!t2s||!t2e||!b1s||!b1e||!b2s||!b2e){alert('All dates are required.');return;}
+  if(!hDays||!hRs||!hRe||!hWs||!hWe){alert('All School Hours fields are required.');return;}
   if(t1s>=t1e){alert('Term 1 start must be before Term 1 end.');return;}
   if(t2s>=t2e){alert('Term 2 start must be before Term 2 end.');return;}
   if(t1e>=t2s){alert('Term 1 must end before Term 2 starts.');return;}
@@ -2161,45 +2198,53 @@ function saveTermDates(){
   if(b2s>=b2e){alert('Break 2 start must be before Break 2 end.');return;}
   if(b1s<t1s||b1e>t1e){alert('Break 1 should fall within Term 1 dates.');return;}
   if(b2s<t2s||b2e>t2e){alert('Break 2 should fall within Term 2 dates.');return;}
+  if(hRs>=hRe){alert('Regular hours start must be before end.');return;}
+  if(hWs>=hWe){alert('Wednesday hours start must be before end.');return;}
   if(!_yearId){alert('No active academic year found — cannot save.');return;}
-  _pendingTermDates={t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e};
+  _pendingTermDates={t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e,hDays,hRs,hRe,hWs,hWe};
   const fmt=s=>{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
   const toISO=parts=>{const[y,m,d]=parts;return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;};
-  const rows=[
+  const dateRows=[
     {label:'Term 1',oldS:toISO(TERM_DATES.t1Start),oldE:toISO(TERM_DATES.t1End),newS:t1s,newE:t1e},
     {label:'Break 1',oldS:toISO(TERM_DATES.break1Start),oldE:toISO(TERM_DATES.break1End),newS:b1s,newE:b1e},
     {label:'Term 2',oldS:toISO(TERM_DATES.t2Start),oldE:toISO(TERM_DATES.t2End),newS:t2s,newE:t2e},
     {label:'Break 2',oldS:toISO(TERM_DATES.break2Start),oldE:toISO(TERM_DATES.break2End),newS:b2s,newE:b2e}
   ];
-  const changed=rows.filter(r=>r.oldS!==r.newS||r.oldE!==r.newE);
-  if(changed.length===0){
-    document.getElementById('confirmTermDatesSummary').innerHTML='No changes detected.';
-  }else{
-    document.getElementById('confirmTermDatesSummary').innerHTML=
-      changed.map(r=>`<strong>${r.label}:</strong> ${fmt(r.newS)} – ${fmt(r.newE)}`).join('<br>');
+  const changedDates=dateRows.filter(r=>r.oldS!==r.newS||r.oldE!==r.newE);
+  const lines=changedDates.map(r=>`<strong>${r.label}:</strong> ${fmt(r.newS)} – ${fmt(r.newE)}`);
+  if(hDays!==TERM_DATES.hoursRegularDays||hRs!==TERM_DATES.hoursRegularStart||hRe!==TERM_DATES.hoursRegularEnd){
+    lines.push(`<strong>Regular Hours:</strong> ${hDays}, ${hRs} – ${hRe}`);
   }
+  if(hWs!==TERM_DATES.hoursWedStart||hWe!==TERM_DATES.hoursWedEnd){
+    lines.push(`<strong>Wednesday Hours:</strong> ${hWs} – ${hWe}`);
+  }
+  document.getElementById('confirmTermDatesSummary').innerHTML=lines.length?lines.join('<br>'):'No changes detected.';
   closeModal('editTermDatesModal');
   document.getElementById('confirmTermDatesModal').classList.add('open');
 }
 
 async function confirmSaveTermDates(){
   if(!_pendingTermDates)return;
-  const{t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e}=_pendingTermDates;
+  const{t1s,t1e,b1s,b1e,t2s,t2e,b2s,b2e,hDays,hRs,hRe,hWs,hWe}=_pendingTermDates;
   try{
     const{error}=await _sb.from('bloom_academic_years').update({
       t1_start:t1s,t1_end:t1e,t2_start:t2s,t2_end:t2e,
-      break1_start:b1s,break1_end:b1e,break2_start:b2s,break2_end:b2e
+      break1_start:b1s,break1_end:b1e,break2_start:b2s,break2_end:b2e,
+      hours_regular_start:hRs,hours_regular_end:hRe,hours_regular_days:hDays,
+      hours_wed_start:hWs,hours_wed_end:hWe
     }).eq('id',_yearId);
     if(error)throw error;
     TERM_DATES={
       t1Start:parseDateParts(t1s),t1End:parseDateParts(t1e),
       t2Start:parseDateParts(t2s),t2End:parseDateParts(t2e),
       break1Start:parseDateParts(b1s),break1End:parseDateParts(b1e),
-      break2Start:parseDateParts(b2s),break2End:parseDateParts(b2e)
+      break2Start:parseDateParts(b2s),break2End:parseDateParts(b2e),
+      hoursRegularStart:hRs,hoursRegularEnd:hRe,hoursRegularDays:hDays,
+      hoursWedStart:hWs,hoursWedEnd:hWe
     };
     buildCalendarFromTerms();
     calcDays();renderAdminCalendar();
-    addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, Break1 ${b1s}–${b1e}, T2 ${t2s}–${t2e}, Break2 ${b2s}–${b2e}`,'Admin');
+    addAuditEntry(`Term dates updated: T1 ${t1s}–${t1e}, Break1 ${b1s}–${b1e}, T2 ${t2s}–${t2e}, Break2 ${b2s}–${b2e}, Hours ${hDays} ${hRs}-${hRe}, Wed ${hWs}-${hWe}`,'Admin');
     _pendingTermDates=null;
     closeModal('confirmTermDatesModal');
   }catch(e){
@@ -2302,13 +2347,19 @@ async function sbInit(){
         _yearId=yr.id;
         _yearLabel=yr.label||'';
         if(yr.t1_start&&yr.t1_end&&yr.t2_start&&yr.t2_end){
+          const trimTime=t=>t?t.slice(0,5):null;
           TERM_DATES={
             t1Start:parseDateParts(yr.t1_start),t1End:parseDateParts(yr.t1_end),
             t2Start:parseDateParts(yr.t2_start),t2End:parseDateParts(yr.t2_end),
             break1Start:yr.break1_start?parseDateParts(yr.break1_start):TERM_DATES.break1Start,
             break1End:yr.break1_end?parseDateParts(yr.break1_end):TERM_DATES.break1End,
             break2Start:yr.break2_start?parseDateParts(yr.break2_start):TERM_DATES.break2Start,
-            break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End
+            break2End:yr.break2_end?parseDateParts(yr.break2_end):TERM_DATES.break2End,
+            hoursRegularStart:trimTime(yr.hours_regular_start)||TERM_DATES.hoursRegularStart,
+            hoursRegularEnd:trimTime(yr.hours_regular_end)||TERM_DATES.hoursRegularEnd,
+            hoursRegularDays:yr.hours_regular_days||TERM_DATES.hoursRegularDays,
+            hoursWedStart:trimTime(yr.hours_wed_start)||TERM_DATES.hoursWedStart,
+            hoursWedEnd:trimTime(yr.hours_wed_end)||TERM_DATES.hoursWedEnd
           };
           buildCalendarFromTerms();
         }
@@ -2426,10 +2477,9 @@ function loadImageAsDataURL(src){
     img.src=src;
   });
 }
-// Key Dates for the PDF are now built live from TERM_DATES at export time
-// (see getPdfKeyDates below), so they can never drift from what's on screen.
-// Official Holidays and School Hours are still hardcoded — same tradeoff as
-// index.html — since neither is editable from admin yet.
+// Key Dates and School Hours for the PDF are now built live from TERM_DATES
+// at export time, so they can never drift from what's on screen.
+// Official Holidays are still hardcoded, since holidays aren't editable from admin yet.
 function fmtPdfDateRange(startParts,endParts){
   const abbr=m=>MONTH_NAMES[m].slice(0,3);
   const[sy,sm,sd_]=startParts,[ey,em,ed_]=endParts;
@@ -2444,13 +2494,16 @@ function getPdfKeyDates(){
     {label:'BREAK',labelClass:'break',value:fmtPdfDateRange(break2Start,break2End)}
   ];
 }
+function getPdfHours(){
+  const{hoursRegularDays,hoursRegularStart,hoursRegularEnd,hoursWedStart,hoursWedEnd}=TERM_DATES;
+  return[
+    {day:hoursRegularDays,time:`${hoursRegularStart} \u2013 ${hoursRegularEnd}`},
+    {day:'Wed',time:`${hoursWedStart} \u2013 ${hoursWedEnd}`}
+  ];
+}
 const PDF_HOLIDAYS=[
   {label:'13 OCT 2026',value:'HM King Bhumibol Memorial Day'},
   {label:'20 MAY 2027',value:'Visakha Bucha Day'}
-];
-const PDF_HOURS=[
-  {day:'Mon, Tue, Thu, Fri',time:'08:30 \u2013 15:30'},
-  {day:'Wed',time:'08:30 \u2013 13:30'}
 ];
 async function exportCalendarPDF(){
   const btn=document.getElementById('pdfExportBtn');
@@ -2459,6 +2512,7 @@ async function exportCalendarPDF(){
     if(typeof window.jspdf==='undefined'){alert('PDF library failed to load. Check your connection and try again.');return;}
     btn.textContent='Generating\u2026';btn.disabled=true;
     const PDF_KEY_DATES=getPdfKeyDates();
+    const PDF_HOURS=getPdfHours();
 
     const{jsPDF}=window.jspdf;
     const pageW=420,margin=10;
