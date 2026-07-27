@@ -489,13 +489,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="popup-body">
     <div class="auth-section-title">Profile</div>
     <div class="auth-fg"><label>Email</label><div id="accountEmail" style="font-size:14px;padding:8px 0;">—</div></div>
-    <div class="auth-fg"><label>Display name</label><input type="text" id="accountName" placeholder="Your name"></div>
-    <button class="auth-submit-btn" onclick="saveAccountName()">Save name</button>
-    <div class="auth-section-title" style="margin-top:18px;">Change password</div>
-    <div class="auth-fg"><label>New password</label><input type="password" id="accountNewPass" placeholder="New password"></div>
-    <div class="auth-fg"><label>Confirm password</label><input type="password" id="accountConfirmPass" placeholder="Confirm password"></div>
-    <button class="auth-submit-btn" onclick="saveAccountPassword()">Update password</button>
-    <button class="auth-submit-btn auth-signout-btn" style="margin-top:16px;" onclick="doSignOut()">Sign out</button>
+    <div class="auth-fg"><label>Display name</label><div id="accountNameDisplay" style="font-size:14px;padding:8px 0;">—</div></div>
+    <p style="font-size:13px;color:#5F5E5A;background:#F7F3EC;border:1px solid #E8E3D8;border-radius:8px;padding:12px 14px;margin:10px 0 16px;">
+      Your Bloom Chiangmai account (name, email, password) is now shared across Bloombrary, the Calendar, and the Parent Portal. Manage it at <a href="https://portal.learn2bloom.org" style="color:#2C2C2A;font-weight:600;">portal.learn2bloom.org</a>.
+    </p>
+    <button class="auth-submit-btn auth-signout-btn" style="margin-top:8px;" onclick="doSignOut()">Sign out</button>
     </div>
   </div>
 </div>
@@ -816,29 +814,6 @@ async function forgotPassword(){
   if(!email){showToast('Enter your email first, then tap Forgot password.','error');return;}
   const {error}=await _supabase.auth.resetPasswordForEmail(email);
   if(error)showToast(error.message,'error');else showToast('Password reset email sent — check your inbox.');
-}
-
-async function saveAccountName(){
-  const name=document.getElementById('accountName').value.trim();
-  if(!name){showToast('Enter a name first.','error');return;}
-  const {error}=await _supabase.auth.updateUser({data:{display_name:name}});
-  if(error){showToast('Could not update name: '+(error.message||'error'),'error');return;}
-  showToast('Name updated.');
-}
-
-async function saveAccountPassword(){
-  const pass=document.getElementById('accountNewPass').value;
-  const confirmPass=document.getElementById('accountConfirmPass').value;
-  if(!pass||pass.length<6){showToast('Password must be at least 6 characters.','error');return;}
-  if(pass!==confirmPass){showToast('Passwords do not match.','error');return;}
-  const {error}=await _supabase.auth.updateUser({password:pass});
-  if(error){showToast('Could not update password: '+(error.message||'error'),'error');return;}
-  document.getElementById('accountNewPass').value='';
-  document.getElementById('accountConfirmPass').value='';
-  showToast('Password updated — please sign in again with your new password.');
-  await _supabase.auth.signOut();
-  closeAccountModal();
-  openAuthModal();
 }
 
 async function confirmDeleteAccount(){
@@ -1317,7 +1292,7 @@ _supabase.auth.onAuthStateChange((event,session)=>{
     btn.textContent=(session.user.email||'Account').split('@')[0];
     btn.onclick=openAccountModal;
     document.getElementById('accountEmail').textContent=session.user.email||'—';
-    document.getElementById('accountName').value=session.user.user_metadata?.display_name||'';
+    document.getElementById('accountNameDisplay').textContent=session.user.user_metadata?.display_name||(session.user.email||'').split('@')[0]||'—';
     window._bloomCurrentEmail=session.user.email;
     checkNotifyBadge(session.user.email);
     subscribeNotifyRealtime(session.user.email);
