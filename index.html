@@ -812,7 +812,9 @@ async function doAuth(){
 async function forgotPassword(){
   const email=document.getElementById('authEmail').value.trim();
   if(!email){showToast('Enter your email first, then tap Forgot password.','error');return;}
-  const {error}=await _supabase.auth.resetPasswordForEmail(email);
+  const {error}=await _supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'https://portal.learn2bloom.org/reset-password.html'
+  });
   if(error)showToast(error.message,'error');else showToast('Password reset email sent — check your inbox.');
 }
 
