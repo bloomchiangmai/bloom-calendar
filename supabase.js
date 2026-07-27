@@ -2,27 +2,32 @@
 const SUPABASE_URL = 'https://ndlcfgkhxjoancdvmgmr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
 
-// Shared cookie-based session storage so login persists across all
-// *.learn2bloom.org subdomains (Bloombrary, Calendar, Portal) instead of
-// each site keeping a separate localStorage-only session.
-const cookieAuthStorage = {
-  getItem: (key) => {
-    const match = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
-    return match ? decodeURIComponent(match[1]) : null;
+// Shared cross-subdomain session storage for Bloom Space Hub (Bloombrary + Calendar + Portal).
+// Stores the Supabase session in a cookie scoped to .learn2bloom.org instead of the
+// default localStorage, so signing in here is also recognized on the other Bloom tools.
+// Must match bloom-library and bloom-portal's implementation exactly (same storageKey,
+// same cookie format) or sessions won't be recognized as the same across sites.
+const bloomHubCookieStorage = {
+  getItem(key){
+    const m = document.cookie.match('(^|; )' + key.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&') + '=([^;]*)');
+    return m ? decodeURIComponent(m[2]) : null;
   },
-  setItem: (key, value) => {
-    try {
-      document.cookie = `${key}=${encodeURIComponent(value)}; domain=.learn2bloom.org; path=/; max-age=31536000; secure; samesite=lax`;
-    } catch (e) { console.error('cookieAuthStorage.setItem failed', e); }
+  setItem(key, value){
+    let cookie = key + '=' + encodeURIComponent(value) + '; Max-Age=' + (60*60*24*30) + '; Path=/; SameSite=Lax; Secure';
+    if(location.hostname.endsWith('learn2bloom.org')) cookie += '; Domain=.learn2bloom.org';
+    document.cookie = cookie;
   },
-  removeItem: (key) => {
-    document.cookie = `${key}=; domain=.learn2bloom.org; path=/; max-age=0; secure; samesite=lax`;
+  removeItem(key){
+    let cookie = key + '=; Max-Age=0; Path=/; SameSite=Lax; Secure';
+    if(location.hostname.endsWith('learn2bloom.org')) cookie += '; Domain=.learn2bloom.org';
+    document.cookie = cookie;
   }
 };
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
-    storage: cookieAuthStorage,
+    storage: bloomHubCookieStorage,
+    storageKey: 'bloom-hub-auth',
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true
