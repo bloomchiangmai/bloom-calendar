@@ -2,7 +2,32 @@
 const SUPABASE_URL = 'https://ndlcfgkhxjoancdvmgmr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5kbGNmZ2toeGpvYW5jZHZtZ21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDYwODUsImV4cCI6MjA5Nzk4MjA4NX0.q0F6_ej0CTneazs6ey7mR3HOsGpqrU0BLe8Y-JHatu8';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Shared cookie-based session storage so login persists across all
+// *.learn2bloom.org subdomains (Bloombrary, Calendar, Portal) instead of
+// each site keeping a separate localStorage-only session.
+const cookieAuthStorage = {
+  getItem: (key) => {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+  },
+  setItem: (key, value) => {
+    try {
+      document.cookie = `${key}=${encodeURIComponent(value)}; domain=.learn2bloom.org; path=/; max-age=31536000; secure; samesite=lax`;
+    } catch (e) { console.error('cookieAuthStorage.setItem failed', e); }
+  },
+  removeItem: (key) => {
+    document.cookie = `${key}=; domain=.learn2bloom.org; path=/; max-age=0; secure; samesite=lax`;
+  }
+};
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: cookieAuthStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 // Location ID for Bloom Chiangmai - set after first fetch
 let LOCATION_ID = null;
