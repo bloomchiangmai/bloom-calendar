@@ -481,10 +481,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="popup auth-popup account-popup">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;">
       <div class="popup-date" style="margin:0;">My Account</div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <a onclick="openDeleteAccountModal()" style="font-size:11px;color:#aaa;cursor:pointer;text-decoration:underline;">Delete account</a>
-        <button class="popup-close" style="margin:0;" onclick="closeAccountModal()">✕</button>
-      </div>
+      <button class="popup-close" style="margin:0;" onclick="closeAccountModal()">✕</button>
     </div>
     <div class="popup-body">
     <div class="auth-section-title">Profile</div>
@@ -494,19 +491,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       Your Bloom Chiangmai account (name, email, password) is now shared across Bloombrary, the Calendar, and the Parent Portal. Manage it at <a href="https://portal.learn2bloom.org/login.html" style="color:#2C2C2A;font-weight:600;">portal.learn2bloom.org</a>.
     </p>
     <button class="auth-submit-btn auth-signout-btn" style="margin-top:8px;" onclick="doSignOut()">Sign out</button>
-    </div>
-  </div>
-</div>
-
-<!-- DELETE ACCOUNT CONFIRM -->
-<div class="popup-overlay" id="deleteAccountOverlay" onclick="if(event.target===this)closeDeleteAccountModal()">
-  <div class="popup auth-popup">
-    <button class="popup-close" onclick="closeDeleteAccountModal()">✕</button>
-    <div class="popup-body">
-    <div class="popup-date">Delete account</div>
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">⚠️ This permanently deletes your account across the entire Bloom Chiangmai platform — including Bloombrary and any other Bloom tools tied to this login. This cannot be undone. Type your email below to confirm.</div>
-    <div class="auth-fg"><input type="text" id="deleteConfirmEmail" placeholder="you@email.com"></div>
-    <button class="auth-submit-btn" style="background:var(--holiday-color, #dc2626);" onclick="confirmDeleteAccount()">Permanently delete account</button>
+    <p style="font-size:11px;color:#aaa;text-align:center;margin-top:14px;">To close your account, please contact the school directly.</p>
     </div>
   </div>
 </div>
@@ -629,8 +614,6 @@ function openAuthModal(){if(!_signinEnabled){showToast("Sign in is coming soon. 
 function closeAuthModal(){document.getElementById('authOverlay').classList.remove('open');resetViewportPan();}
 function openAccountModal(){document.getElementById('accountOverlay').classList.add('open');}
 function closeAccountModal(){document.getElementById('accountOverlay').classList.remove('open');resetViewportPan();}
-function openDeleteAccountModal(){document.getElementById('deleteConfirmEmail').value='';closeAccountModal();document.getElementById('deleteAccountOverlay').classList.add('open');}
-function closeDeleteAccountModal(){document.getElementById('deleteAccountOverlay').classList.remove('open');resetViewportPan();}
 
 window._datePicker={target:null,viewYear:null,viewMonth:null};
 const DP_MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -816,25 +799,6 @@ async function forgotPassword(){
     redirectTo: 'https://portal.learn2bloom.org/reset-password.html'
   });
   if(error)showToast(error.message,'error');else showToast('Password reset email sent — check your inbox.');
-}
-
-async function confirmDeleteAccount(){
-  const {data:{session}}=await _supabase.auth.getSession();
-  const typed=document.getElementById('deleteConfirmEmail').value.trim().toLowerCase();
-  const actual=(session?.user?.email||'').toLowerCase();
-  if(!typed){showToast('Please type your email to confirm.','error');return;}
-  if(typed!==actual){showToast('Email does not match.','error');return;}
-  try{
-    const token=session?.access_token;
-    await fetch('https://ndlcfgkhxjoancdvmgmr.supabase.co/functions/v1/swift-worker',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({user_id:session.user.id})
-    });
-    await _supabase.auth.signOut();
-    closeDeleteAccountModal();
-    showToast('Account deleted.');
-  }catch(e){showToast('Could not delete account: '+(e.message||'error'),'error');}
 }
 
 async function doSignOut(){
