@@ -1340,7 +1340,7 @@ async function loadFromSupabase(){
       buildCalendarFromTerms();
     }
     // Load events
-    const{data:events}=await _supabase.from('bloom_calendar_events').select('*').eq('location_id',_locationId);
+    const{data:events}=await _supabase.from('bloom_calendar_events').select('*').eq('location_id',_locationId).eq('is_draft',false);
     if(events&&events.length>0){
       overrides={};
       events.forEach(ev=>{overrides[ev.date]={type:ev.day_type,label:ev.label||''};});
