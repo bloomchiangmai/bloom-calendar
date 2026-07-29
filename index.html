@@ -246,6 +246,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 </head>
 <body>
 
+<div id="calendarMaintenanceOverlay" style="display:none;position:fixed;inset:0;background:#FDFAF5;z-index:9999;align-items:center;justify-content:center;text-align:center;padding:24px;">
+  <div style="max-width:420px;">
+    <h1 style="font-family:Georgia,serif;font-size:26px;margin-bottom:12px;">Calendar temporarily unavailable</h1>
+    <p style="font-size:15px;color:#5F5E5A;line-height:1.6;">We're doing some maintenance. Please check back shortly, or contact the school office if you need calendar information right away.</p>
+  </div>
+</div>
+
 <header class="header">
   <div class="header-left">
     <img src="assets/logo.png" alt="Bloom Chiangmai" class="logo-img">
@@ -557,10 +564,13 @@ let _notifyEnabled=false;
 let _signinEnabled=false;
 async function loadPublicAccessFlags(){
   try{
-    const{data,error}=await _supabase.from('bloom_settings').select('notify_enabled,signin_enabled').eq('location_id',_locationId).maybeSingle();
+    const{data,error}=await _supabase.from('bloom_settings').select('notify_enabled,signin_enabled,calendar_enabled').eq('location_id',_locationId).maybeSingle();
     if(error||!data)return;
     _notifyEnabled=!!data.notify_enabled;
     _signinEnabled=!!data.signin_enabled;
+    if(data.calendar_enabled===false){
+      document.getElementById('calendarMaintenanceOverlay').style.display='flex';
+    }
   }catch(e){
     console.log('Failed to load public access flags, defaulting to off',e);
   }
