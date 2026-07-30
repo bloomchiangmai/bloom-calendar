@@ -1367,6 +1367,19 @@ loadFromSupabase().then(()=>{
   loadPublicAccessFlags();
 });
 
+async function refreshPublicCalendarEvents(){
+  if(!_locationId)return;
+  try{
+    const{data:events}=await _supabase.from('bloom_calendar_events').select('*').eq('location_id',_locationId).eq('is_draft',false);
+    overrides={};
+    if(events&&events.length>0){
+      events.forEach(ev=>{overrides[ev.date]={type:ev.day_type,label:ev.label||''};});
+    }
+    renderCalendar();renderMobileMonth();calcStats();
+  }catch(e){console.log('Public calendar refresh failed',e);}
+}
+setInterval(refreshPublicCalendarEvents,5000);
+
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ===== PDF Export =====
